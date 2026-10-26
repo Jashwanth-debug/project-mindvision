@@ -18,13 +18,11 @@ export default function ClinicianPortal({
   const [selectedRecord, setSelectedRecord] = useState(null);
 
   // Active Doctor & Real-Time Requests State
-  const [currentSession, setCurrentSession] = useState(DoctorAuthService.getCurrentSession());
   const [activeDoctor, setActiveDoctor] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
 
   const syncState = () => {
     const session = DoctorAuthService.getCurrentSession();
-    setCurrentSession(session);
 
     let doc = session.user;
     if (!doc && session.role === 'DOCTOR') {

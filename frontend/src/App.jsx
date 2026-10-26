@@ -15,6 +15,7 @@ import LongitudinalComparisonView from './components/LongitudinalComparisonView'
 import PatientHistoryView from './components/PatientHistoryView';
 import CrisisSupport from './components/CrisisSupport';
 import ErrorBoundary from './components/ErrorBoundary';
+import WellnessHubView from './components/wellness/WellnessHubView';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 import { PageTransition } from './components/primitives';
@@ -146,6 +147,7 @@ export default function App() {
   // Active Teletherapy Session State
   const [activeTeletherapySession, setActiveTeletherapySession] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [activeWellnessActivity, setActiveWellnessActivity] = useState(null);
 
   // Handle Theme switching & html data-theme attribute
   useEffect(() => {
@@ -171,9 +173,24 @@ export default function App() {
   // Real-time signaling listener for cross-tab patient/doctor/admin sync
   useEffect(() => {
     const handleNav = (e) => {
-      if (e.detail) setActiveTab(e.detail);
+      if (e.detail) {
+        if (typeof e.detail === 'object') {
+          if (e.detail.tab) setActiveTab(e.detail.tab);
+          if (e.detail.activity) setActiveWellnessActivity(e.detail.activity);
+        } else {
+          setActiveTab(e.detail);
+        }
+      }
     };
     window.addEventListener('NAVIGATE_TAB', handleNav);
+
+    const handleWellnessNav = (e) => {
+      if (e.detail?.activity) {
+        setActiveWellnessActivity(e.detail.activity);
+      }
+      setActiveTab('wellness');
+    };
+    window.addEventListener('NAVIGATE_WELLNESS_ACTIVITY', handleWellnessNav);
 
     const unsubscribe = DoctorAuthService.subscribe((msg) => {
       if (msg.type === 'SESSION_CHANGED') {
@@ -190,6 +207,7 @@ export default function App() {
 
     return () => {
       window.removeEventListener('NAVIGATE_TAB', handleNav);
+      window.removeEventListener('NAVIGATE_WELLNESS_ACTIVITY', handleWellnessNav);
       unsubscribe();
     };
   }, []);
@@ -323,6 +341,15 @@ export default function App() {
                 userRole={userRole}
                 setUserRole={setUserRole}
                 onConnectDoctor={handleConnectDoctor}
+                onShowToast={showToast}
+              />
+            )}
+
+            {activeTab === 'wellness' && (
+              <WellnessHubView
+                initialActivity={activeWellnessActivity}
+                records={records}
+                setActiveTab={setActiveTab}
                 onShowToast={showToast}
               />
             )}

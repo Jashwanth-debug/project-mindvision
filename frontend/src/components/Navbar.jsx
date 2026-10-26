@@ -114,8 +114,8 @@ export default function Navbar({
                 {currentRole === 'DOCTOR' || currentRole === 'CLINICIAN'
                   ? 'Clinical Decision Support Workstation'
                   : currentRole === 'ADMIN' || currentRole === 'TECHNICAL'
-                  ? 'Multimodal Telemetry & Research'
-                  : 'Your Wellness Check-in Companion'}
+                    ? 'Multimodal Telemetry & Research'
+                    : 'Your Wellness Check-in Companion'}
               </span>
             </div>
           </div>
@@ -132,6 +132,13 @@ export default function Navbar({
                 onClick={() => handleNavClick('home')}
               >
                 <span>Home</span>
+              </button>
+              <button
+                type="button"
+                className={`nav-link-btn ${activeTab === 'wellness' ? 'active' : ''}`}
+                onClick={() => handleNavClick('wellness')}
+              >
+                <span>Wellness Hub</span>
               </button>
               <button
                 type="button"
@@ -458,6 +465,13 @@ export default function Navbar({
                   style={{ justifyContent: 'flex-start', width: '100%' }}
                 >
                   Home Overview
+                </InteractiveButton>
+                <InteractiveButton
+                  variant={activeTab === 'wellness' ? 'primary' : 'ghost'}
+                  onClick={() => handleNavClick('wellness')}
+                  style={{ justifyContent: 'flex-start', width: '100%' }}
+                >
+                  Wellness Hub
                 </InteractiveButton>
                 <InteractiveButton
                   variant={activeTab === 'results' ? 'primary' : 'ghost'}

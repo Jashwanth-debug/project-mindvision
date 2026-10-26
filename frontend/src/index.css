@@ -3166,3 +3166,36 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   transform: none;
 }
 
+/* ==========================================================================
+   Patient Wellness Hub Styles
+   ========================================================================== */
+.wellness-modal-overlay {
+  animation: fadeIn var(--transition-fast) ease-out;
+}
+
+.wellness-modal-card {
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 640px) {
+  .wellness-modal-card {
+    padding: 1.25rem !important;
+    margin: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wellness-modal-card,
+  .wellness-modal-overlay {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
