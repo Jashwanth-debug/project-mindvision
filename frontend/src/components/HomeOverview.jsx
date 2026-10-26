@@ -1,22 +1,40 @@
-import React, { useState } from 'react';
-import { getHumanStatus, CLINICAL_DISCLAIMER } from '../utils/terminology';
+import React from 'react';
+import { getHumanStatus } from '../utils/terminology';
+import { SpecialistStrip } from './DoctorMarketplace';
+import {
+  IconSparkles,
+  IconShieldCheck,
+  IconClock,
+  IconMic,
+  IconLeaf,
+  IconHeartPulse,
+  IconCalendar,
+  IconBookOpen,
+  IconLifeBuoy,
+  IconPhone,
+  IconChevronRight,
+  IconArrowRight
+} from './Icons';
 
 /**
- * HomeOverview - Patient-Centered Wellness Home Screen
+ * HomeOverview - Production-Grade Patient-Centered Wellness Home Screen
  * 
- * Production-grade, reassuring, calm interface modeled after Headspace, Calm, and Teladoc.
- * Zero clinical jargon, zero AU codes, zero biometric signal breakdowns.
- * One clear primary action, supportive secondary cards, and warm encouragement.
+ * Rebalanced Patient Layout & Design:
+ * 1. Top full-width hero: Atmospheric gradient card with custom badge hierarchy & pulsing CTA.
+ * 2. Secondary reflection module: Recessed elevation with SVG iconography & 7-day wellness dots.
+ * 3. Secondary action cards: Elevated hover micro-interactions, distinct iconography, clear hierarchy.
+ * 4. Subordinate compact specialist strip: Gradient-masked horizontal scroll track with dynamic avatars.
+ * 5. 24/7 crisis support & privacy assurance: Subtle warm banner with instant click-to-call action.
  */
 export default function HomeOverview({
   setActiveTab,
   latestRecord = null,
   records = [],
   userRole = 'PATIENT',
-  setUserRole
+  setUserRole,
+  onConnectDoctor,
+  onShowToast
 }) {
-  const [showDetailModal, setShowDetailModal] = useState(false);
-
   // Derive latest record or realistic baseline
   const activeRecord = latestRecord || (records && records.length > 0 ? records[0] : {
     riskLevel: 'MINIMAL',
@@ -24,155 +42,211 @@ export default function HomeOverview({
     timestamp: 'Today'
   });
 
-  // Human-friendly status mapping
-  const humanStatus = getHumanStatus(activeRecord.riskLevel, activeRecord.compositeRisk);
-
-  // Determine supportive message based on risk level
   const isElevated = activeRecord.riskLevel === 'ELEVATED' || activeRecord.riskLevel === 'SEVERE';
-  const statusHeadline = isElevated ? "It might help to talk with someone" : "Steady & calm pattern reported";
-  const statusEncouragement = isElevated
-    ? "Your recent check-in showed subtle signs that things might feel a bit heavy right now. Taking a moment for gentle support can make a big difference."
-    : "Your recent check-in reflected a steady, calm pattern based on your self-reported responses. Remember to take small pauses throughout your day to nourish yourself.";
-  const statusNextStep = isElevated
-    ? "Would you like to connect with a caring counselor who can listen?"
-    : "Want to do a quick 2-minute reflection on how you're feeling today?";
+  const statusHeadline = isElevated ? "Support is here if you need it" : "Steady & calm pattern reported";
+  const statusRecap = isElevated
+    ? "Your recent responses showed subtle signs of stress. Taking small pauses for yourself can bring gentle relief."
+    : "Your recent check-in showed a steady, calm pattern. Taking regular moments to pause helps maintain your well-being.";
+
+  // 7-day steady trend dots for weekly summary module
+  const weeklyTrendDays = [
+    { label: 'M', status: 'CALM', date: 'Mon' },
+    { label: 'T', status: 'CALM', date: 'Tue' },
+    { label: 'W', status: 'CALM', date: 'Wed' },
+    { label: 'T', status: isElevated ? 'ELEVATED' : 'CALM', date: 'Thu' },
+    { label: 'F', status: 'CALM', date: 'Fri' },
+    { label: 'S', status: 'CALM', date: 'Sat' },
+    { label: 'Today', status: isElevated ? 'ELEVATED' : 'CALM', isToday: true }
+  ];
 
   return (
     <div className="patient-view-shell">
       
-      {/* 1. Welcoming Hero Banner with One Obvious Primary CTA */}
-      <div className="patient-hero-card">
+      {/* 1. TOP FULL-WIDTH HERO: REAL-TIME AI CHECK-IN */}
+      <section className="patient-hero-card animate-enter-1" style={{ width: '100%' }} aria-label="Real-Time AI Check-in">
         <div className="patient-hero-kicker">
-          <span>🌿 MindVision Wellness</span>
-          <span style={{ color: 'var(--text-muted)' }}>•</span>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.78rem' }}>🔒 Private &amp; Secure</span>
+          <span className="badge-hero-primary">
+            <IconSparkles size={14} />
+            <span>Real-Time AI Check-in</span>
+          </span>
+          <span className="badge-info-tag">
+            <IconShieldCheck size={13} />
+            <span>100% Private &amp; Secure</span>
+          </span>
         </div>
 
         <h1 className="patient-hero-title">
-          Hi there, how are you feeling today?
+          Start your check-in — it only takes a minute.
         </h1>
 
         <p className="patient-hero-subtitle">
-          Take a quiet moment for yourself. Our gentle, voice-guided check-in takes just 2 minutes and helps you understand how you're really doing.
+          Take a quiet pause for yourself. Our gentle, voice-guided companion listens with empathy to help you notice how you're really doing today, with personalized insights and zero judgment.
         </p>
 
-        {/* The One Clear Primary Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        {/* Large Pulsing CTA Button with micro-badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
           <button
             type="button"
-            className="btn-patient-primary"
+            className="btn-patient-primary pulse-cta"
             onClick={() => setActiveTab('assessment')}
+            aria-label="Start Real-Time AI Check-in"
           >
             <span>Start Check-in</span>
-            <span style={{ fontSize: '1.2rem' }}>›</span>
+            <IconChevronRight size={18} />
           </button>
-          <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-            ⏱️ Takes only 2–3 minutes
-          </span>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.84rem', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <IconClock size={15} style={{ color: 'var(--color-primary)' }} />
+              <span>Takes ~1–2 minutes</span>
+            </span>
+            <span style={{ color: 'var(--border-color-strong)' }}>•</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <IconMic size={15} style={{ color: 'var(--color-primary)' }} />
+              <span>Speak or type freely</span>
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* 2. Previous Result (Human, Warm, Simple — No Biometric Breakdown) */}
-      <div
+      {/* 2. SECONDARY MODULE: LAST CHECK-IN SUMMARY & WEEKLY TREND */}
+      <section
+        className="card-depth-secondary animate-enter-2"
         style={{
-          backgroundColor: 'var(--card-bg)',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
-          boxShadow: 'var(--shadow-card)',
+          width: '100%',
           display: 'flex',
-          flexDirection: 'column',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
           gap: '1.25rem'
         }}
+        aria-label="Recent Check-in Summary"
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div
-              style={{
-                width: '54px',
-                height: '54px',
-                borderRadius: '50%',
-                backgroundColor: isElevated ? 'var(--status-elevated-bg)' : 'var(--status-minimal-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.8rem',
-                flexShrink: 0
-              }}
-            >
-              {isElevated ? '🧡' : '🌱'}
-            </div>
-            <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                Your Latest Check-in Summary
-              </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                {statusHeadline}
-              </h2>
-            </div>
-          </div>
-
-          <span
+        {/* Left Side: Summary Note */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', minWidth: '280px', flex: '1 1 340px' }}>
+          <div
             style={{
-              fontSize: '0.82rem',
-              color: 'var(--text-muted)',
-              backgroundColor: 'var(--bg-secondary)',
-              padding: '0.3rem 0.75rem',
-              borderRadius: 'var(--radius-pill)'
+              width: '46px',
+              height: '46px',
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: isElevated ? 'var(--status-elevated-bg)' : 'var(--status-minimal-bg)',
+              color: isElevated ? 'var(--status-elevated-text)' : 'var(--status-minimal-text)',
+              border: `1px solid ${isElevated ? 'var(--status-elevated-border)' : 'var(--status-minimal-border)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
             }}
           >
-            {activeRecord.timestamp || 'Recent reflection'}
-          </span>
+            {isElevated ? <IconHeartPulse size={22} /> : <IconLeaf size={22} />}
+          </div>
+          <div>
+            <div style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+              Latest Reflection • {activeRecord.timestamp || 'Recent'}
+            </div>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.2rem 0', fontFamily: 'var(--font-heading)' }}>
+              {statusHeadline}
+            </h2>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
+              {statusRecap}
+            </p>
+          </div>
         </div>
 
-        {/* Soft Sentence of Encouragement */}
-        <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-          {statusEncouragement}
-        </p>
-
-        {/* One Simple Next-Step Suggestion */}
+        {/* Right Side: Weekly Trend Indicator */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1rem 1.25rem',
-            backgroundColor: 'var(--accent-teal-soft-bg)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--accent-teal-border)',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: '0.5rem',
+            paddingLeft: '1.25rem',
+            borderLeft: '1px solid var(--border-color)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>💡</span>
-            <span style={{ fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-              {statusNextStep}
-            </span>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>
+            7-DAY WELLNESS PATTERN
           </div>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {weeklyTrendDays.map((day, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+                title={`${day.date}: ${day.status === 'CALM' ? 'Calm pattern' : 'Elevated stress'}`}
+              >
+                <div
+                  style={{
+                    width: day.isToday ? '12px' : '9px',
+                    height: day.isToday ? '12px' : '9px',
+                    borderRadius: '50%',
+                    backgroundColor: day.status === 'CALM' ? 'var(--status-minimal-dot)' : 'var(--status-elevated-dot)',
+                    border: day.isToday ? '2px solid var(--accent-teal)' : 'none',
+                    boxShadow: day.isToday ? '0 0 0 2px var(--accent-teal-subtle)' : 'none',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                />
+                <span style={{ fontSize: '0.66rem', color: day.isToday ? 'var(--color-primary)' : 'var(--text-muted)', fontWeight: day.isToday ? 700 : 500 }}>
+                  {day.label}
+                </span>
+              </div>
+            ))}
+          </div>
           <button
             type="button"
-            onClick={() => setActiveTab(isElevated ? 'doctors' : 'assessment')}
+            onClick={() => setActiveTab('results')}
             style={{
-              backgroundColor: 'var(--accent-teal)',
-              color: '#FFFFFF',
+              background: 'none',
               border: 'none',
-              borderRadius: 'var(--radius-pill)',
-              padding: '0.45rem 1rem',
-              fontSize: '0.86rem',
+              color: 'var(--color-primary)',
+              fontSize: '0.8rem',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              transition: 'color var(--transition-fast)'
             }}
           >
-            {isElevated ? 'Explore Support Options' : 'Take a Check-in'}
+            <span>View check-in timeline</span>
+            <IconChevronRight size={13} />
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* 3. Secondary Actions as Friendly, Beautiful Cards (Not Dense Buttons) */}
-      <div className="patient-cards-grid">
-        {/* Card A: My Past Check-ins */}
+      {/* 3. SECONDARY ACTION CARDS (Friendly, Spacious Grid) */}
+      <section className="patient-cards-grid animate-enter-3" aria-label="Wellness Tools & Supportive Resources">
+        {/* Card A: Wellness Hub */}
+        <div
+          className="patient-action-card"
+          onClick={() => setActiveTab('wellness')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActiveTab('wellness'); }}
+        >
+          <div>
+            <div className="patient-action-card-icon" style={{ backgroundColor: 'var(--accent-teal-soft-bg)', color: 'var(--accent-teal)' }}>
+              <IconLeaf size={20} />
+            </div>
+            <h2 className="patient-action-card-title">
+              Patient Wellness Hub
+            </h2>
+            <p className="patient-action-card-desc">
+              Box breathing guide, daily mood logs, private reflection journal, habit tracking, and gentle coping toolkit.
+            </p>
+          </div>
+          <div className="patient-action-card-link">
+            <span>Explore wellness tools</span>
+            <IconChevronRight size={16} />
+          </div>
+        </div>
+
+        {/* Card B: My Past Check-ins */}
         <div
           className="patient-action-card"
           onClick={() => setActiveTab('results')}
@@ -182,51 +256,72 @@ export default function HomeOverview({
         >
           <div>
             <div className="patient-action-card-icon">
-              <span>📅</span>
+              <IconCalendar size={20} />
             </div>
             <h2 className="patient-action-card-title">
               See my past check-ins
             </h2>
             <p className="patient-action-card-desc">
-              View your personal timeline of previous check-ins and notice how your energy and mood evolve over time.
+              Review your personal wellness history and observe how your sleep, energy, and mood evolve over time.
             </p>
           </div>
           <div className="patient-action-card-link">
             <span>View your history</span>
-            <span>›</span>
+            <IconChevronRight size={16} />
           </div>
         </div>
 
-        {/* Card B: Talk to a Counselor */}
+        {/* Card B: Self-Reflection & Guidance */}
         <div
           className="patient-action-card"
-          onClick={() => setActiveTab('doctors')}
+          onClick={() => setActiveTab('docs')}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') setActiveTab('doctors'); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActiveTab('docs'); }}
         >
           <div>
-            <div className="patient-action-card-icon" style={{ backgroundColor: 'var(--accent-warm-soft)', color: 'var(--crisis-title-color)' }}>
-              <span>💬</span>
+            <div className="patient-action-card-icon" style={{ backgroundColor: 'var(--status-support-bg)', color: 'var(--status-support-text)' }}>
+              <IconBookOpen size={20} />
             </div>
             <h2 className="patient-action-card-title">
-              Talk to someone
+              Wellness guidance &amp; FAQs
             </h2>
             <p className="patient-action-card-desc">
-              Connect in a safe, confidential space with verified healthcare professionals who listen without judgment.
+              Learn how your gentle check-ins help build self-awareness and how your privacy is rigorously protected.
             </p>
           </div>
-          <div className="patient-action-card-link" style={{ color: 'var(--crisis-title-color)' }}>
-            <span>Find a counselor</span>
-            <span>›</span>
+          <div className="patient-action-card-link">
+            <span>Read guide &amp; privacy</span>
+            <IconChevronRight size={16} />
           </div>
         </div>
+      </section>
+
+      {/* 4. COMPACT SPECIALIST FOOTER STRIP (Subordinate, Horizontally Scrollable) */}
+      <div className="animate-enter-4">
+        <SpecialistStrip
+          onConnectDoctor={onConnectDoctor}
+          setActiveTab={setActiveTab}
+        />
       </div>
 
-      {/* 4. Reassuring, Calm "Need Help Now?" Crisis Support Card (Not Alarming Red) */}
-      <div className="patient-crisis-banner">
+      {/* 5. REASSURING CRISIS SUPPORT CARD */}
+      <section className="patient-crisis-banner animate-enter-4" aria-label="Crisis Support Information">
         <div className="patient-crisis-text">
-          <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>💛</span>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--status-support-bg)',
+            color: 'var(--status-support-text)',
+            border: '1px solid var(--status-support-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <IconLifeBuoy size={22} />
+          </div>
           <div>
             <h2 className="patient-crisis-title">
               Need immediate support or someone to talk to right now?
@@ -239,24 +334,36 @@ export default function HomeOverview({
         <a
           href="tel:988"
           className="patient-crisis-cta"
+          aria-label="Call or text 988 Crisis Lifeline"
         >
-          <span>📞</span>
+          <IconPhone size={15} />
           <span>Call or Text 988</span>
         </a>
-      </div>
+      </section>
 
-      {/* 5. Quiet, Non-Alarming Disclaimer */}
-      <div
+      {/* 6. QUIET CONFIDENTIALITY FOOTNOTE */}
+      <footer
         style={{
           textAlign: 'center',
-          fontSize: '0.8rem',
+          fontSize: '0.82rem',
           color: 'var(--text-muted)',
           lineHeight: 1.5,
-          padding: '0 1rem'
+          padding: '0 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap'
         }}
       >
-        🔒 <strong>Your privacy is protected:</strong> All check-in reflections are kept confidential and are never shared without your permission. MindVision is designed as a wellness self-reflection companion and does not replace professional medical diagnosis or psychiatric care.
-      </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+          <IconShieldCheck size={16} style={{ color: 'var(--color-primary)' }} />
+          <strong>Your privacy is protected:</strong>
+        </span>
+        <span>
+          All check-in reflections are kept confidential and are never shared without your permission. MindVision is designed as a wellness companion and does not replace medical diagnosis or psychiatric therapy.
+        </span>
+      </footer>
 
     </div>
   );

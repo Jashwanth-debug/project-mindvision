@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { DoctorAuthService } from '../services/doctorAuthService';
 import { ClinicalAuditService } from '../services/clinicalAuditService';
+import {
+  IconUsers,
+  IconGift,
+  IconBuilding,
+  IconStar,
+  IconThumbsUp,
+  IconCheck,
+  IconX
+} from './Icons';
 
 export default function DoctorMarketplace({
   onConnectDoctor,
   onShowToast,
   currentTelemetrySnapshot
 }) {
-  const [clinicians, setClinicians] = useState([]);
+  const [clinicians, setClinicians] = useState(() =>
+    DoctorAuthService.getDoctors().filter((d) => d.verificationStatus === 'VERIFIED')
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('ALL');
   const [priceFilter, setPriceFilter] = useState('ALL'); // ALL, FREE, UNDER_250, UNDER_350
@@ -23,7 +34,6 @@ export default function DoctorMarketplace({
   };
 
   useEffect(() => {
-    loadClinicians();
     const unsubscribe = DoctorAuthService.subscribe(() => loadClinicians());
     return () => unsubscribe();
   }, []);
@@ -135,53 +145,12 @@ export default function DoctorMarketplace({
 
   return (
     <div className="marketplace-wrapper">
-      {/* Top Banner / Trust Header */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 50%, rgba(15, 23, 42, 0.6) 100%)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1.25rem 1.5rem',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem'
-        }}
-      >
-        <div style={{ maxWidth: '650px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent-teal)', textTransform: 'uppercase' }}>
-              PRACTO &amp; APOLLO 24/7 COMPLIANT TELE-HEALTH
-            </span>
-            <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-              VERIFIED SPECIALISTS
-            </span>
-          </div>
-          <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-            Instant Video Consultation with Top Psychiatrists &amp; Psychologists
-          </h1>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-            Connect within <strong>5 minutes</strong> with verified NMC and RCI certified doctors. Transparent, subsidized pricing from <strong>₹0 (Pro-Bono)</strong> to <strong>₹299/session</strong> (₹7–₹15/min). No hidden platform fees.
-          </p>
-        </div>
-
-        {/* Trust Badges */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.6rem 0.85rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>₹0 - ₹299</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Affordable Tiers</div>
-          </div>
-          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.6rem 0.85rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)' }}>&lt; 5 Mins</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Avg. Connect Time</div>
-          </div>
-          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.6rem 0.85rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>100%</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>HIPAA / DISHA Encrypted</div>
-          </div>
-        </div>
+      {/* Compact Specialist Footer/Header Strip (Subordinate, Accessible, No Bios/Ratings/Big CTAs) */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <SpecialistStrip
+          onSelectDoctor={(doc) => setSelectedDoctorForModal(doc)}
+          onConnectDoctor={onConnectDoctor}
+        />
       </div>
 
       {/* Search, Filter & Sort Toolbar */}
@@ -225,7 +194,7 @@ export default function DoctorMarketplace({
           >
             <option value="RECOMMENDED">Sort: Recommended</option>
             <option value="PRICE_ASC">Sort: Fee (Low to High)</option>
-            <option value="RATING">Sort: Highest Rated (★)</option>
+            <option value="RATING">Sort: Highest Rated</option>
             <option value="EXPERIENCE">Sort: Experience (Years)</option>
           </select>
         </div>
@@ -257,9 +226,10 @@ export default function DoctorMarketplace({
             type="button"
             className={`btn-secondary ${priceFilter === 'FREE' ? 'active' : ''}`}
             onClick={() => setPriceFilter(priceFilter === 'FREE' ? 'ALL' : 'FREE')}
-            style={{ padding: '0.3rem 0.75rem', fontSize: '0.72rem', borderColor: priceFilter === 'FREE' ? '#10b981' : undefined }}
+            style={{ padding: '0.3rem 0.75rem', fontSize: '0.72rem', borderColor: priceFilter === 'FREE' ? '#10b981' : undefined, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            🎁 Free / Pro-Bono (₹0)
+            <IconGift size={13} />
+            <span>Free / Pro-Bono (₹0)</span>
           </button>
 
           <button
@@ -356,17 +326,18 @@ export default function DoctorMarketplace({
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '2px',
+                        gap: '3px',
                         fontSize: '0.62rem',
                         fontWeight: 700,
                         color: '#10b981',
                         background: 'rgba(16, 185, 129, 0.15)',
-                        padding: '1px 5px',
+                        padding: '1px 6px',
                         borderRadius: '4px',
                         border: '1px solid rgba(16, 185, 129, 0.3)'
                       }}
                     >
-                      ✓ VERIFIED
+                      <IconCheck size={10} />
+                      <span>VERIFIED</span>
                     </span>
                   </div>
 
@@ -381,8 +352,9 @@ export default function DoctorMarketplace({
                   </div>
 
                   {/* Hospital */}
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    🏢 {inst}
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <IconBuilding size={12} />
+                    <span>{inst}</span>
                   </div>
                 </div>
               </div>
@@ -402,11 +374,15 @@ export default function DoctorMarketplace({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>★ {doc.rating || 4.9}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#f59e0b', fontWeight: 700 }}>
+                    <IconStar size={12} style={{ fill: '#f59e0b' }} />
+                    <span>{doc.rating || 4.9}</span>
+                  </span>
                   <span style={{ color: 'var(--text-muted)' }}>({doc.patientStories || 240} stories)</span>
                 </div>
-                <div style={{ color: '#10b981', fontWeight: 600 }}>
-                  👍 {doc.recommendationRate || '98%'} Recommended
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#10b981', fontWeight: 600 }}>
+                  <IconThumbsUp size={12} />
+                  <span>{doc.recommendationRate || '98%'} Recommended</span>
                 </div>
               </div>
 
@@ -440,8 +416,9 @@ export default function DoctorMarketplace({
                 }}
               >
                 <span>AI MATCH: <strong style={{ color: 'var(--accent-teal)' }}>{match.score}%</strong></span>
-                <span style={{ color: isOnline ? '#10b981' : 'var(--text-muted)' }}>
-                  {isOnline ? '🟢 Available in 5 mins' : '⚪ Next Slot Today'}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: isOnline ? '#10b981' : 'var(--text-muted)' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isOnline ? '#10b981' : 'var(--text-muted)', display: 'inline-block' }} />
+                  <span>{isOnline ? 'Available in 5 mins' : 'Next Slot Today'}</span>
                 </span>
                 <span>LANG: <strong>{doc.languages ? doc.languages.slice(0, 2).join('/') : 'EN/HI'}</strong></span>
               </div>
@@ -539,7 +516,9 @@ export default function DoctorMarketplace({
                   </svg>
                   <h3 className="modal-title">Confirm Telehealth Consultation</h3>
                 </div>
-                <button className="modal-close-btn" onClick={() => setSelectedDoctorForModal(null)}>✕</button>
+                <button className="modal-close-btn" onClick={() => setSelectedDoctorForModal(null)} aria-label="Close modal">
+                  <IconX size={16} />
+                </button>
               </div>
 
               <div className="modal-body" style={{ gap: '1rem' }}>
@@ -637,3 +616,130 @@ export default function DoctorMarketplace({
     </div>
   );
 }
+
+const AVATAR_PALETTES = [
+  'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+  'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+  'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+  'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+  'linear-gradient(135deg, #059669 0%, #047857 100%)'
+];
+
+function SpecialistAvatar({ doc }) {
+  const [imgError, setImgError] = useState(false);
+  const name = doc.name || doc.fullName || '';
+  const isOnline = doc.availabilityStatus === 'ONLINE' || doc.isAvailable;
+  const initials = name
+    ? name
+        .replace(/^Dr\.\s*/i, '')
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+    : 'DR';
+
+  // Deterministic gradient selection based on name
+  const charSum = name ? name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) : 0;
+  const backgroundGradient = AVATAR_PALETTES[Math.abs(charSum) % AVATAR_PALETTES.length];
+
+  return (
+    <div className="specialist-avatar-wrap">
+      <div
+        className="specialist-avatar-fallback"
+        style={{
+          background: backgroundGradient,
+          color: '#ffffff',
+          fontWeight: 700,
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
+        }}
+      >
+        {initials}
+      </div>
+      {doc.avatarUrl && !imgError && (
+        <img
+          src={doc.avatarUrl}
+          alt={name}
+          className="specialist-avatar-img"
+          style={{ position: 'absolute', top: 0, left: 0 }}
+          onError={() => setImgError(true)}
+        />
+      )}
+      <span
+        className={`specialist-avail-dot ${isOnline ? 'online' : 'offline'}`}
+        aria-label={isOnline ? 'Online' : 'Offline'}
+      />
+    </div>
+  );
+}
+
+/**
+ * SpecialistStrip - Compact, horizontally-scrollable strip for patient comfort
+ * Displays avatar, name, specialty, and availability dot only (No bios, no ratings, no big CTAs).
+ * Subordinate to AI Check-in with muted secondary styling.
+ */
+export function SpecialistStrip({ onSelectDoctor, onConnectDoctor, setActiveTab }) {
+  const [specialists, setSpecialists] = useState(() =>
+    DoctorAuthService.getDoctors().filter((d) => d.verificationStatus === 'VERIFIED')
+  );
+
+  useEffect(() => {
+    const unsub = DoctorAuthService.subscribe(() => {
+      const updated = DoctorAuthService.getDoctors().filter((d) => d.verificationStatus === 'VERIFIED');
+      setSpecialists(updated);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleCardClick = (doc) => {
+    if (onConnectDoctor) {
+      onConnectDoctor(doc);
+    } else if (onSelectDoctor) {
+      onSelectDoctor(doc);
+    } else if (setActiveTab) {
+      setActiveTab('doctors');
+    }
+  };
+
+  return (
+    <section className="specialist-strip-container" aria-label="Available Healthcare Specialists">
+      <div className="specialist-strip-header">
+        <h3 className="specialist-strip-title">
+          <IconUsers size={17} style={{ color: 'var(--color-primary)' }} />
+          <span>Connect with a Specialist</span>
+        </h3>
+        <p className="specialist-strip-sub">
+          Verified, confidential care available whenever you'd like a human listening ear
+        </p>
+      </div>
+
+      <div className="specialist-scroll-track" role="region" aria-label="Specialists List">
+        {specialists.map((doc) => {
+          const isOnline = doc.availabilityStatus === 'ONLINE' || doc.isAvailable;
+          const name = doc.name || doc.fullName;
+          const specialty = doc.specialization || doc.specialties?.[0] || 'Mental Health';
+
+          return (
+            <button
+              key={doc.id}
+              type="button"
+              className="specialist-mini-card"
+              onClick={() => handleCardClick(doc)}
+              title={`${name} • ${specialty} (${isOnline ? 'Online now' : 'Available'})`}
+            >
+              <SpecialistAvatar doc={doc} />
+
+              <div className="specialist-mini-info">
+                <span className="specialist-mini-name">{name}</span>
+                <span className="specialist-mini-spec">{specialty}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+

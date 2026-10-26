@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconShieldCheck } from './Icons';
 
 /**
  * Footer - Reassuring, Patient-Focused Healthcare Footer
@@ -9,13 +10,15 @@ export default function Footer() {
     <footer style={{
       backgroundColor: 'var(--card-bg)',
       borderTop: '1px solid var(--border-color)',
-      padding: '2rem 1.5rem',
+      padding: '2rem 2.5rem',
       marginTop: 'auto',
-      transition: 'all var(--transition-base)'
+      transition: 'all var(--transition-base)',
+      width: '100%'
     }}>
       <div style={{
-        maxWidth: '860px',
-        margin: '0 auto',
+        width: '100%',
+        maxWidth: '100%',
+        margin: '0',
         display: 'flex',
         flexDirection: 'column',
         gap: '1.25rem',
@@ -26,12 +29,12 @@ export default function Footer() {
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '0.5rem',
-          fontSize: '0.9rem',
+          gap: '0.45rem',
+          fontSize: '0.88rem',
           fontWeight: 600,
           color: 'var(--color-primary)'
         }}>
-          <span>🔒</span>
+          <IconShieldCheck size={16} />
           <span>Private &amp; Secure • Your check-ins remain confidential</span>
         </div>
 

@@ -287,7 +287,7 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
     return () => {
       isMounted = false;
       if (faceMeshRef.current) {
-        try { faceMeshRef.current.close(); } catch {}
+        try { faceMeshRef.current.close(); } catch { }
         faceMeshRef.current = null;
       }
     };
@@ -399,7 +399,7 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
         audioStreamRef.current = null;
       }
       if (audioContextRef.current) {
-        try { audioContextRef.current.close(); } catch {}
+        try { audioContextRef.current.close(); } catch { }
         audioContextRef.current = null;
       }
     };
@@ -487,10 +487,10 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
           const numPixels = browData.length / 4;
 
           for (let i = 0; i < browData.length; i += 4) {
-            const luma = 0.299 * browData[i] + 0.587 * browData[i+1] + 0.114 * browData[i+2];
+            const luma = 0.299 * browData[i] + 0.587 * browData[i + 1] + 0.114 * browData[i + 2];
             browLumaSum += luma;
             if (i + 4 < browData.length) {
-              const nextLuma = 0.299 * browData[i+4] + 0.587 * browData[i+5] + 0.114 * browData[i+6];
+              const nextLuma = 0.299 * browData[i + 4] + 0.587 * browData[i + 5] + 0.114 * browData[i + 6];
               browGradSum += Math.abs(luma - nextLuma);
             }
           }
@@ -498,7 +498,7 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
           const avgBrowLuma = browLumaSum / numPixels;
           let browVarSum = 0;
           for (let i = 0; i < browData.length; i += 4) {
-            const luma = 0.299 * browData[i] + 0.587 * browData[i+1] + 0.114 * browData[i+2];
+            const luma = 0.299 * browData[i] + 0.587 * browData[i + 1] + 0.114 * browData[i + 2];
             browVarSum += (luma - avgBrowLuma) ** 2;
           }
           const browStdDev = Math.sqrt(browVarSum / numPixels);
@@ -516,10 +516,10 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
           const mouthPixels = mouthData.length / 4;
 
           for (let i = 0; i < mouthData.length; i += 4) {
-            const luma = 0.299 * mouthData[i] + 0.587 * mouthData[i+1] + 0.114 * mouthData[i+2];
+            const luma = 0.299 * mouthData[i] + 0.587 * mouthData[i + 1] + 0.114 * mouthData[i + 2];
             mouthLumaSum += luma;
             if (i + 4 < mouthData.length) {
-              const nextLuma = 0.299 * mouthData[i+4] + 0.587 * mouthData[i+5] + 0.114 * mouthData[i+6];
+              const nextLuma = 0.299 * mouthData[i + 4] + 0.587 * mouthData[i + 5] + 0.114 * mouthData[i + 6];
               mouthGradSum += Math.abs(luma - nextLuma);
             }
           }
@@ -606,7 +606,7 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
         if (faceMeshRef.current && !isDetectingRef.current) {
           isDetectingRef.current = true;
           faceMeshRef.current.send({ image: videoRef.current })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => {
               isDetectingRef.current = false;
             });
@@ -831,7 +831,7 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
       audioCtx.beginPath();
       for (let x = 0; x < aWidth; x += 3) {
         const envVal = Math.sin((x * 0.04) + time * 3.5) * 8 * activeJitterVal +
-                       Math.cos((x * 0.1) - time * 2) * 5 * activeJitterVal;
+          Math.cos((x * 0.1) - time * 2) * 5 * activeJitterVal;
         const ey = (aHeight / 2) + envVal;
         if (x === 0) audioCtx.moveTo(x, ey);
         else audioCtx.lineTo(x, ey);

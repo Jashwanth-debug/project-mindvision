@@ -8,10 +8,23 @@
  * - Standard CORS and Health Probes
  */
 
+// Automatically load local .env files if present (native in Node 20+)
+try {
+  if (typeof process.loadEnvFile === 'function') {
+    process.loadEnvFile();
+  }
+} catch {}
+try {
+  if (typeof process.loadEnvFile === 'function') {
+    process.loadEnvFile('./backend/.env');
+  }
+} catch {}
+
 import http from 'http';
 import { registerDoctorRoutes } from './routes/doctorRoutes.js';
 import { registerTelemetryRoutes } from './routes/telemetryRoutes.js';
 import { registerAuditRoutes } from './routes/auditRoutes.js';
+import { registerTTSRoutes } from './routes/ttsRoutes.js';
 
 const PORT = process.env.PORT || 5001;
 
@@ -85,6 +98,7 @@ router.get('/api/health', (req, res) => {
 registerDoctorRoutes(router);
 registerTelemetryRoutes(router);
 registerAuditRoutes(router);
+registerTTSRoutes(router);
 
 const server = http.createServer(async (req, res) => {
   // CORS Headers

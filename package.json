@@ -10,6 +10,7 @@
     "lint": "npm --prefix frontend run lint",
     "start:backend": "node backend/src/server.js",
     "dev:backend": "node --watch backend/src/server.js",
-    "dev:all": "npm run start:backend & npm --prefix frontend run dev"
+    "dev:all": "npm run start:backend & npm --prefix frontend run dev",
+    "test": "npm --prefix backend test"
   }
 }

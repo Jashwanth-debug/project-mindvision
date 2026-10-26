@@ -154,30 +154,54 @@ export function determineNextQuestion(latestAnswer = '', askedQuestionIds = []) 
 }
 
 /**
- * Empathetic, supportive acknowledgement prefix before asking the next question.
+ * Empathetic, supportive acknowledgement tailored to the patient's prior answer.
  */
-export function getConversationalAcknowledgement(questionCount = 1, isFinal = false) {
+export function getConversationalAcknowledgement(latestAnswer = '', questionCount = 1, isFinal = false) {
   if (isFinal) {
-    return "Thank you for sharing that. I have gathered enough to complete your check-in summary.";
+    return "Thank you so much for taking this time to share with me. I've gathered everything needed for your gentle summary.";
   }
 
-  const acknowledgements = [
-    "Thank you for sharing that.",
-    "I understand. That makes sense.",
-    "That's helpful context. Let's look at another aspect.",
-    "Thanks. I'd like to ask you one more question about how that feels."
+  const text = (typeof latestAnswer === 'string' ? latestAnswer : '').toLowerCase();
+
+  // Content-aware acknowledgments
+  if (text.includes('tired') || text.includes('fatigue') || text.includes('exhaust') || text.includes('drained') || text.includes('low energy')) {
+    return "Thank you for sharing that. Navigating persistent exhaustion can feel so overwhelming day to day.";
+  }
+  if (text.includes('stress') || text.includes('pressure') || text.includes('overwhelm') || text.includes('deadline') || text.includes('burnout')) {
+    return "I hear how much pressure has been resting on your shoulders. It makes complete sense to feel weighed down by that.";
+  }
+  if (text.includes('sleep') || text.includes('insomnia') || text.includes('awake') || text.includes('waking') || text.includes('restless')) {
+    return "Thank you for opening up about your sleep. Waking up unrefreshed changes how the whole day feels.";
+  }
+  if (text.includes('sad') || text.includes('depress') || text.includes('cry') || text.includes('down') || text.includes('lonely') || text.includes('hopeless')) {
+    return "Thank you for trusting me with that. Holding those heavy, quiet feelings alone is really difficult.";
+  }
+  if (text.includes('focus') || text.includes('concentrat') || text.includes('fog') || text.includes('distract') || text.includes('forget')) {
+    return "I understand completely. Brain fog and trouble focusing can be deeply frustrating.";
+  }
+  if (text.includes('fine') || text.includes('good') || text.includes('great') || text.includes('okay') || text.includes('well') || text.includes('steady')) {
+    return "I'm glad to hear that things have felt relatively steady. It's nourishing to notice those calmer spaces.";
+  }
+
+  // Graceful sequential warm acknowledgments
+  const fallbackAcknowledgements = [
+    "Thank you for sharing that with me.",
+    "I appreciate your honesty — that helps us understand how you're feeling.",
+    "That makes total sense. Let's look at another gentle part of your routine.",
+    "Thanks for letting me know. Let's explore how that feels in your day."
   ];
 
-  return acknowledgements[(questionCount - 1) % acknowledgements.length];
+  const index = typeof questionCount === 'number' ? Math.max(0, questionCount - 1) : 0;
+  return fallbackAcknowledgements[index % fallbackAcknowledgements.length];
 }
 
 /**
- * Reassuring, calming progress message.
+ * Reassuring, conversational progress message without rigid test formatting.
  */
 export function getFriendlyProgress(questionIndex = 1, maxQuestions = 4) {
-  if (questionIndex === 1) return "Beginning your check-in";
-  if (questionIndex === 2) return "You're making good progress.";
-  if (questionIndex === 3) return "About halfway through";
-  if (questionIndex >= 4) return "Almost done — wrapping up";
-  return "In progress";
+  if (questionIndex === 1) return "Beginning our reflection • A quiet moment for you";
+  if (questionIndex === 2) return "Reflecting on your rest and energy";
+  if (questionIndex === 3) return "Noticing what's weighing on you";
+  if (questionIndex >= 4) return "Noticing your coping strengths • Wrapping up";
+  return "In quiet reflection";
 }

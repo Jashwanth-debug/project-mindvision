@@ -1,4 +1,13 @@
 import React from 'react';
+import {
+  IconShieldCheck,
+  IconLifeBuoy,
+  IconUserCheck,
+  IconStethoscope,
+  IconSliders,
+  IconSun,
+  IconMoon
+} from './Icons';
 
 export default function Navbar({
   activeTab,
@@ -58,6 +67,12 @@ export default function Navbar({
                 onClick={() => setActiveTab('home')}
               >
                 Home
+              </button>
+              <button
+                className={`nav-link-btn ${activeTab === 'wellness' ? 'active' : ''}`}
+                onClick={() => setActiveTab('wellness')}
+              >
+                Wellness Hub
               </button>
               <button
                 className={`nav-link-btn ${activeTab === 'results' ? 'active' : ''}`}
@@ -163,55 +178,74 @@ export default function Navbar({
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-pill)',
               border: '1px solid var(--border-color)',
-              alignItems: 'center'
+              alignItems: 'center',
+              height: '34px'
             }} title="Switch workstation perspective">
               <button
                 type="button"
                 onClick={() => handleRoleChange('PATIENT')}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                   padding: '0.25rem 0.65rem',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
-                  background: currentRole === 'PATIENT' ? 'var(--accent-teal)' : 'transparent',
+                  background: currentRole === 'PATIENT' ? 'var(--color-primary)' : 'transparent',
                   color: currentRole === 'PATIENT' ? '#fff' : 'var(--text-secondary)',
                   fontWeight: 600,
                   fontSize: '0.74rem',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  height: '28px',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
-                👤 Patient View
+                <IconUserCheck size={13} />
+                <span>Patient</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleChange('DOCTOR')}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                   padding: '0.25rem 0.65rem',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
-                  background: (currentRole === 'DOCTOR' || currentRole === 'CLINICIAN') ? 'var(--accent-teal)' : 'transparent',
+                  background: (currentRole === 'DOCTOR' || currentRole === 'CLINICIAN') ? 'var(--color-primary)' : 'transparent',
                   color: (currentRole === 'DOCTOR' || currentRole === 'CLINICIAN') ? '#fff' : 'var(--text-secondary)',
                   fontWeight: 600,
                   fontSize: '0.74rem',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  height: '28px',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
-                🩺 Clinician
+                <IconStethoscope size={13} />
+                <span>Clinician</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleChange('ADMIN')}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                   padding: '0.25rem 0.65rem',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
-                  background: (currentRole === 'ADMIN' || currentRole === 'TECHNICAL') ? 'var(--accent-teal)' : 'transparent',
+                  background: (currentRole === 'ADMIN' || currentRole === 'TECHNICAL') ? 'var(--color-primary)' : 'transparent',
                   color: (currentRole === 'ADMIN' || currentRole === 'TECHNICAL') ? '#fff' : 'var(--text-secondary)',
                   fontWeight: 600,
                   fontSize: '0.74rem',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  height: '28px',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
-                🔬 Technical
+                <IconSliders size={13} />
+                <span>Technical</span>
               </button>
             </div>
           )}
@@ -220,16 +254,18 @@ export default function Navbar({
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.35rem 0.8rem',
+            gap: '0.45rem',
+            padding: '0 0.85rem',
+            height: '34px',
             borderRadius: 'var(--radius-pill)',
-            backgroundColor: 'var(--accent-teal-soft-bg)',
+            backgroundColor: 'var(--accent-teal-subtle)',
             color: 'var(--color-primary)',
             fontSize: '0.78rem',
-            fontWeight: 600
+            fontWeight: 600,
+            border: '1px solid var(--border-color)'
           }}>
-            <span>🔒</span>
-            <span>Your information is private and secure.</span>
+            <IconShieldCheck size={14} />
+            <span>Private &amp; Secure</span>
           </div>
 
           {/* Gentle, Calm Immediate Support Option */}
@@ -244,39 +280,41 @@ export default function Navbar({
               color: 'var(--status-support-text)',
               border: '1px solid var(--status-support-border)',
               borderRadius: 'var(--radius-pill)',
-              padding: '0.4rem 0.95rem',
-              fontSize: '0.82rem',
+              padding: '0 0.95rem',
+              height: '34px',
+              fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all var(--transition-fast)'
             }}
             title="Need immediate listening support or free crisis resources?"
           >
-            <span>💬</span>
+            <IconLifeBuoy size={14} />
             <span>Need help now?</span>
           </button>
 
-          {/* Clinician Access Link (Discreetly placed, not an overwhelming toggle) */}
+          {/* Clinician Access Link */}
           <button
             type="button"
             onClick={onOpenAuth}
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: '1px solid transparent',
+              borderRadius: 'var(--radius-pill)',
+              color: 'var(--text-secondary)',
               fontSize: '0.78rem',
               cursor: 'pointer',
-              padding: '0.3rem 0.5rem',
+              padding: '0 0.65rem',
+              height: '34px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem'
+              gap: '0.4rem',
+              fontWeight: 500,
+              transition: 'all var(--transition-fast)'
             }}
             title="Clinician / Provider sign in"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <IconUserCheck size={14} style={{ color: 'var(--text-muted)' }} />
             <span>{currentRole === 'PATIENT' ? 'Provider login' : (doctorName || 'Staff Console')}</span>
           </button>
 
@@ -286,23 +324,12 @@ export default function Navbar({
             onClick={toggleTheme}
             aria-label="Toggle dark/light theme"
             title={theme === 'dark' ? 'Switch to daylight theme' : 'Switch to evening theme'}
+            style={{ height: '34px', width: '34px' }}
           >
             {theme === 'dark' ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
+              <IconSun size={15} />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
+              <IconMoon size={15} />
             )}
           </button>
         </div>

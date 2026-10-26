@@ -263,31 +263,39 @@ export class TelemetryTimelineService {
   }
 
   /**
+   * Produce metric deltas between current active session and previous longitudinal baseline
+   */
+  static calculateDelta(currentMetrics = {}) {
+    return this.compareSessions(currentMetrics);
+  }
+
+  /**
    * Compare Current Session vs. Immediate Previous Session.
    * Produces honest metric deltas without clinical diagnosis claims.
    */
-  static compareSessions(currentMetrics, previousSession = null) {
+  static compareSessions(currentMetrics = {}, previousSession = null) {
+    const metrics = currentMetrics || {};
     const prev = previousSession || this.getLongitudinalSessions().slice(-1)[0];
     if (!prev) return null;
 
     const prevIndicator = prev.compositeIndicator ?? 4.8;
-    const currIndicator = currentMetrics.compositeRisk ?? currentMetrics.compositeIndicator ?? 6.3;
+    const currIndicator = metrics.compositeRisk ?? metrics.compositeIndicator ?? 6.3;
     const indicatorDelta = parseFloat((currIndicator - prevIndicator).toFixed(1));
 
     const prevQuality = prev.signalQuality ?? 79;
-    const currQuality = currentMetrics.signalQuality ?? 86;
+    const currQuality = metrics.signalQuality ?? 86;
     const qualityDelta = currQuality - prevQuality;
 
     const prevAu4 = prev.metrics?.au4 ?? 0.38;
-    const currAu4 = currentMetrics.au4 ?? 0.55;
+    const currAu4 = metrics.au4 ?? 0.55;
     const au4Delta = parseFloat((currAu4 - prevAu4).toFixed(2));
 
     const prevProsody = prev.metrics?.prosody ?? 0.31;
-    const currProsody = currentMetrics.acousticJitter ?? currentMetrics.prosody ?? 0.42;
+    const currProsody = metrics.acousticJitter ?? metrics.prosody ?? 0.42;
     const prosodyDelta = parseFloat((currProsody - prevProsody).toFixed(2));
 
     const prevIncongruence = prev.metrics?.incongruence ?? 0.17;
-    const currIncongruence = currentMetrics.incongruenceIndex ?? currentMetrics.incongruence ?? 0.28;
+    const currIncongruence = metrics.incongruenceIndex ?? metrics.incongruence ?? 0.28;
     const incongruenceDelta = parseFloat((currIncongruence - prevIncongruence).toFixed(2));
 
     return {

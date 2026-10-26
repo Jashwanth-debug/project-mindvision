@@ -10,7 +10,7 @@
 
 import crypto from 'crypto';
 
-const SECRET_KEY = process.env.JWT_SECRET || 'mindvision_secure_jwt_token_secret_2026';
+const SECRET_KEY = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY || 'mindvision_secure_jwt_token_secret_2026';
 
 /**
  * Generate a signed JWT token
