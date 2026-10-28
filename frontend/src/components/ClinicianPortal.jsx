@@ -18,32 +18,31 @@ export default function ClinicianPortal({
   const [selectedRecord, setSelectedRecord] = useState(null);
 
   // Active Doctor & Real-Time Requests State
-  const [activeDoctor, setActiveDoctor] = useState(null);
-  const [incomingRequest, setIncomingRequest] = useState(null);
-
-  const syncState = () => {
+  const getInitialDoctor = () => {
     const session = DoctorAuthService.getCurrentSession();
-
     let doc = session.user;
     if (!doc && session.role === 'DOCTOR') {
       doc = DoctorAuthService.getDoctors()[0];
     } else if (doc) {
       doc = DoctorAuthService.getDoctorById(doc.id) || doc;
     }
-    setActiveDoctor(doc);
+    return doc;
+  };
 
-    // Find pending consultation requests for this doctor
+  const getInitialPending = () => {
     const consultations = DoctorAuthService.getConsultations();
-    const pending = consultations.find((c) => c.sessionStatus === 'REQUESTED');
-    if (pending) {
-      setIncomingRequest(pending);
-    } else {
-      setIncomingRequest(null);
-    }
+    return consultations.find((c) => c.sessionStatus === 'REQUESTED') || null;
+  };
+
+  const [activeDoctor, setActiveDoctor] = useState(getInitialDoctor);
+  const [incomingRequest, setIncomingRequest] = useState(getInitialPending);
+
+  const syncState = () => {
+    setActiveDoctor(getInitialDoctor());
+    setIncomingRequest(getInitialPending());
   };
 
   useEffect(() => {
-    syncState();
     const unsubscribe = DoctorAuthService.subscribe((msg) => {
       syncState();
       if (msg.type === 'CONSULTATION_REQUESTED') {

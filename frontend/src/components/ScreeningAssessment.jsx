@@ -45,6 +45,7 @@ import {
   IconButton,
   Tooltip
 } from './primitives';
+import ExplainabilityModal from './ExplainabilityModal';
 
 // Workflow Stages
 const STAGE = {
@@ -136,6 +137,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
   const [completedReport, setCompletedReport] = useState(null);
   const [pdfStatus, setPdfStatus] = useState('idle'); // 'idle' | 'generating' | 'success' | 'error'
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
 
   // Production-Grade Explicit Interaction State Machine (8 States)
   const [interactionState, setInteractionState] = useState(INTERACTION_STATE.IDLE);
@@ -151,13 +153,15 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
       if (rawDraft) {
         const draft = JSON.parse(rawDraft);
         if (draft && Array.isArray(draft.dialogHistory) && draft.dialogHistory.length > 0) {
-          setDialogHistory(draft.dialogHistory);
-          if (Array.isArray(draft.askedQuestionIds)) setAskedQuestionIds(draft.askedQuestionIds);
-          if (draft.questionCount) setQuestionCount(draft.questionCount);
-          if (draft.currentQuestion) setCurrentQuestion(draft.currentQuestion);
-          setCurrentStage(STAGE.CONVERSATION);
-          setInteractionState(INTERACTION_STATE.LISTENING);
-          setTurnState(TURN_STATE.TYPING);
+          Promise.resolve().then(() => {
+            setDialogHistory(draft.dialogHistory);
+            if (Array.isArray(draft.askedQuestionIds)) setAskedQuestionIds(draft.askedQuestionIds);
+            if (draft.questionCount) setQuestionCount(draft.questionCount);
+            if (draft.currentQuestion) setCurrentQuestion(draft.currentQuestion);
+            setCurrentStage(STAGE.CONVERSATION);
+            setInteractionState(INTERACTION_STATE.LISTENING);
+            setTurnState(TURN_STATE.TYPING);
+          });
         }
       }
     } catch {
@@ -424,12 +428,19 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
     };
   }, []);
 
-  // 3. Initialize MediaPipe FaceMesh via CDN and Anchor Real-Time Loop
+  // 3. Initialize MediaPipe FaceMesh via Vendored Local Assets & Anchor Real-Time Loop
   const initFaceMeshDetector = () => {
     try {
       if (!window.FaceMesh) return;
+      const getMediaPipeAsset = (file) => {
+        if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+          const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+          return `${basePath}vendor/mediapipe/${file}`;
+        }
+        return `/vendor/mediapipe/${file}`;
+      };
       const fm = new window.FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        locateFile: (file) => getMediaPipeAsset(file)
       });
       fm.setOptions({
         maxNumFaces: 1,
@@ -505,14 +516,24 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
   const initCameraPipeline = async () => {
     if (!allowCamera) return;
 
-    // Load MediaPipe FaceMesh CDN if not present
+    // Load MediaPipe FaceMesh locally (or CDN fallback if offline files missing)
     if (!window.FaceMesh && !document.getElementById('mediapipe-facemesh-cdn')) {
       const script = document.createElement('script');
       script.id = 'mediapipe-facemesh-cdn';
-      script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+      const localScriptPath = (typeof window !== 'undefined' && window.location.protocol === 'file:')
+        ? `${window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1)}vendor/mediapipe/face_mesh.js`
+        : '/vendor/mediapipe/face_mesh.js';
+      script.src = localScriptPath;
       script.async = true;
-      script.crossOrigin = 'anonymous';
       script.onload = () => initFaceMeshDetector();
+      script.onerror = () => {
+        // Resilient fallback to CDN if local bundle script fails
+        const fallback = document.createElement('script');
+        fallback.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+        fallback.async = true;
+        fallback.onload = () => initFaceMeshDetector();
+        document.head.appendChild(fallback);
+      };
       document.head.appendChild(script);
     } else if (window.FaceMesh) {
       initFaceMeshDetector();
@@ -626,6 +647,10 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
           setTurnState(TURN_STATE.TYPING);
           setInteractionState(INTERACTION_STATE.ERROR);
           onShowToast?.('Microphone access was not permitted. Switching to typed response.');
+        } else if (event.error === 'network') {
+          setTurnState(TURN_STATE.TYPING);
+          setInteractionState(INTERACTION_STATE.LISTENING);
+          onShowToast?.('Voice recognition offline on this device. Switched to secure text entry.');
         } else if (!recognizedText.trim()) {
           setTurnState(TURN_STATE.TYPING);
           setInteractionState(INTERACTION_STATE.LISTENING);
@@ -842,7 +867,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
         .filter((a) => Boolean(a));
       const fullValidText = validAnswers.join(' ');
       const isTextValid = validAnswers.length > 0;
-      
+
       // 2. Perform deep clinical domain analysis across Mood, Sleep, Stress, Energy, and Coping
       const domainAnalysis = analyzeDomainResponses(history);
 
@@ -887,10 +912,21 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
       const soapNote = synthesizeSoapNote(fullValidText || history.map((h) => h.answer).join(' '), metrics);
 
       const isElevatedRisk = metrics.riskLevel === 'ELEVATED' || metrics.riskLevel === 'SEVERE' || (metrics.compositeRisk >= 3.5);
-      const reportHeadline = domainAnalysis.headline || (isElevatedRisk ? "It might help to talk with someone" : "Steady & calm pattern reported");
-      const reportExplanation = domainAnalysis.explanation || (isElevatedRisk
-        ? "We noticed subtle signs of stress in your responses today. Remember that carrying a lot is hard, and gentle support is always available."
-        : "Your self-reported answers and estimated signals reflect a calm, steady pattern today. Nice job taking time out of your day to pause and check in with yourself.");
+      const isInsufficientData = Boolean(metrics.isInsufficientData);
+      const reportHeadline = domainAnalysis.headline || (
+        isInsufficientData
+          ? "Check-in Complete — Signals Inconclusive"
+          : isElevatedRisk
+          ? "It might help to talk with someone"
+          : "Steady & calm pattern reported"
+      );
+      const reportExplanation = domainAnalysis.explanation || (
+        isInsufficientData
+          ? "Sensors and text inputs did not register sufficient active data for a multimodal assessment. If you are experiencing distress, reach out to someone you trust or check our support resources."
+          : isElevatedRisk
+          ? "We noticed subtle signs of stress in your responses today. Remember that carrying a lot is hard, and gentle support is always available."
+          : "Your self-reported answers and estimated signals reflect a calm, steady pattern today. Nice job taking time out of your day to pause and check in with yourself."
+      );
 
       const reportId = `scr_${Math.random().toString(36).substring(2, 9)}`;
       const finalReport = {
@@ -911,6 +947,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
         mode: 'CONVERSATIONAL_VOICE',
         hasFacialTelemetry: hasFacial,
         hasAudioTelemetry: hasAudio,
+        isInsufficientData,
         signalWarnings: metrics.warnings || [],
         summary: reportHeadline,
         explanation: reportExplanation,
@@ -981,7 +1018,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
 
   return (
     <div className="assessment-wrapper">
-      
+
       {/* ============================================================== */}
       {/* 1. INTRO / WELCOME STAGE */}
       {/* ============================================================== */}
@@ -1087,7 +1124,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
       {/* ============================================================== */}
       {currentStage === STAGE.CONVERSATION && (
         <div className="patient-view-shell" style={{ width: '100%', padding: '0.5rem 0 2rem 0' }}>
-          
+
           {/* Conversational Progress & Real-Time Control Bar */}
           <div style={{
             display: 'flex',
@@ -1718,7 +1755,7 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
 
         return (
           <div className="patient-view-shell" style={{ width: '100%' }}>
-            
+
             {/* Main Result Card */}
             <div className="patient-result-card">
               <div
@@ -1899,13 +1936,24 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
                     MindVision looks gently at three everyday reflection cues:
                   </p>
                   <ul style={{ paddingLeft: '1.25rem', margin: '0 0 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <li><strong>Your words:</strong> The thoughts and experiences you shared with us.</li>
-                    <li><strong>Your speaking rhythm:</strong> Natural pauses, warmth, and steadiness in your voice tone.</li>
-                    <li><strong>Gentle expressions:</strong> Subtle signs of brow concentration or facial relaxation.</li>
+                    <li><strong>Your words:</strong> {completedReport?.text ? 'Recorded' : 'Not Provided'} — Subjective thoughts and feelings shared.</li>
+                    <li><strong>Your speaking rhythm:</strong> {completedReport?.hasAudioTelemetry ? 'Recorded' : 'Inactive / Audio off'} — Natural pauses and voice tone variation.</li>
+                    <li><strong>Gentle expressions:</strong> {completedReport?.hasFacialTelemetry ? 'Recorded' : 'Inactive / Camera off'} — Brow concentration and resting facial tone.</li>
                   </ul>
                   <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted)' }}>
                     Together, these help you pause and notice how you're feeling without harsh judgments or technical scoring.
                   </p>
+
+                  <div style={{ marginTop: '0.85rem' }}>
+                    <button
+                      type="button"
+                      className="btn-patient-secondary"
+                      onClick={() => setIsExplainModalOpen(true)}
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                    >
+                      <span>🔍 View Signal Transparency Details</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1945,6 +1993,17 @@ export default function ScreeningAssessment({ onCompleteAssessment, onShowToast 
         report={selectedReportForPreview}
         onClose={() => setSelectedReportForPreview(null)}
         onDownload={(rpt) => handleDownloadPdf(rpt)}
+      />
+
+      {/* Signal Transparency & Attribution Modal */}
+      <ExplainabilityModal
+        isOpen={isExplainModalOpen}
+        onClose={() => setIsExplainModalOpen(false)}
+        metrics={completedReport}
+        qualityReport={{
+          overallScore: completedReport?.isInsufficientData ? 15 : ((completedReport?.hasFacialTelemetry && completedReport?.hasAudioTelemetry) ? 92 : 78)
+        }}
+        mode="LIVE"
       />
 
     </div>

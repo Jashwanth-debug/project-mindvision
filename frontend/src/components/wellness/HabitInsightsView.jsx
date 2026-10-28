@@ -4,20 +4,17 @@ import {
   getLocalDateString
 } from '../../services/wellnessStorageService';
 import {
-  IconActivity,
   IconSunMedium,
   IconMoonStar,
   IconHeartPulse,
   IconCheck,
   IconShieldCheck,
-  IconSparkles,
-  IconTrendingUp,
-  IconBarChart2
+  IconTrendingUp
 } from '../Icons';
 
 export default function HabitInsightsView({ onShowToast = () => {} }) {
   const [habitData, setHabitData] = useState(() => WellnessActivityService.getWeeklyHabitInsights());
-  const [activities, setActivities] = useState(() => WellnessActivityService.getActivities());
+  const [activities] = useState(() => WellnessActivityService.getActivities());
 
   // Today's ratings input
   const todayStr = getLocalDateString(new Date());

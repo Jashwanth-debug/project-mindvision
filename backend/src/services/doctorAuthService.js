@@ -45,7 +45,7 @@ function setStoredItem(key, value) {
     } else {
       memoryStore.set(key, value);
     }
-  } catch (e) {
+  } catch {
     memoryStore.set(key, value);
   }
 }

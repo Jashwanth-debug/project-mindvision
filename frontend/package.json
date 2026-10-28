@@ -7,9 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop:start": "cd .. && npm run desktop:start",
+    "desktop:build": "npm run build",
+    "desktop:package": "cd .. && npm run desktop:package"
   },
   "dependencies": {
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "jspdf": "^4.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WellnessAudioEngine, WellnessActivityService } from '../../services/wellnessStorageService';
 import {
   IconX,
@@ -9,7 +9,6 @@ import {
   IconVolumeX,
   IconSparkles,
   IconCheck,
-  IconClock,
   IconSmile
 } from '../Icons';
 
@@ -32,7 +31,11 @@ export default function GuidedBreathingModal({
   const [isPaused, setIsPaused] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  ));
 
   // Breathing cycle tracking
   const [phaseIndex, setPhaseIndex] = useState(0); // 0 to 3
@@ -42,11 +45,29 @@ export default function GuidedBreathingModal({
 
   const timerRef = useRef(null);
 
+  const handleSessionComplete = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsActive(false);
+    setIsPaused(false);
+    setIsCompleted(true);
+
+    WellnessAudioEngine.playPhaseChime('complete', isMuted);
+
+    // Save session in local wellness storage
+    const minutes = Math.round(selectedDuration / 60);
+    WellnessActivityService.recordSession({
+      type: 'breathing',
+      title: `Box Breathing (${minutes} min)`,
+      durationSeconds: selectedDuration,
+      cycles: completedCycles + 1,
+      notes: 'Completed calm box breathing exercise.'
+    });
+  }, [completedCycles, isMuted, selectedDuration]);
+
   // Check system reduced-motion preference on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setReducedMotion(mediaQuery.matches);
       const listener = (e) => setReducedMotion(e.matches);
       mediaQuery.addEventListener?.('change', listener);
       return () => mediaQuery.removeEventListener?.('change', listener);
@@ -55,9 +76,11 @@ export default function GuidedBreathingModal({
 
   // Sync initial duration when prop changes
   useEffect(() => {
-    if (initialDuration) {
-      setSelectedDuration(initialDuration);
-    }
+    Promise.resolve().then(() => {
+      if (initialDuration) {
+        setSelectedDuration(initialDuration);
+      }
+    });
   }, [initialDuration]);
 
   // Main countdown & phase transition loop
@@ -104,7 +127,7 @@ export default function GuidedBreathingModal({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, isPaused, isCompleted, phaseIndex, selectedDuration, isMuted]);
+  }, [isActive, isPaused, isCompleted, phaseIndex, selectedDuration, isMuted, handleSessionComplete]);
 
   const handleStart = () => {
     setIsActive(true);
@@ -135,25 +158,6 @@ export default function GuidedBreathingModal({
     setSecondsLeftInPhase(PHASES[0].duration);
     setPhaseIndex(0);
     setTotalSecondsElapsed(0);
-  };
-
-  const handleSessionComplete = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setIsActive(false);
-    setIsPaused(false);
-    setIsCompleted(true);
-
-    WellnessAudioEngine.playPhaseChime('complete', isMuted);
-
-    // Save session in local wellness storage
-    const minutes = Math.round(selectedDuration / 60);
-    WellnessActivityService.recordSession({
-      type: 'breathing',
-      title: `Box Breathing (${minutes} min)`,
-      durationSeconds: selectedDuration,
-      cycles: completedCycles + 1,
-      notes: 'Completed calm box breathing exercise.'
-    });
   };
 
   const handleClose = () => {

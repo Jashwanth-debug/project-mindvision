@@ -10,7 +10,6 @@ import {
   IconEdit,
   IconTrash2,
   IconSparkles,
-  IconShieldCheck,
   IconLock,
   IconCheck,
   IconX,
@@ -18,7 +17,7 @@ import {
 } from '../Icons';
 
 export default function PrivateJournalView({ onShowToast = () => {} }) {
-  const [entries, setEntries] = useState(() => JournalService.getEntries());
+  const [_entries, setEntries] = useState(() => JournalService.getEntries());
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPromptIdx, setCurrentPromptIdx] = useState(0);
 

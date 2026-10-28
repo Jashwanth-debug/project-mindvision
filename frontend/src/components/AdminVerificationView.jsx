@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DoctorAuthService } from '../services/doctorAuthService';
 
 export default function AdminVerificationView({ onShowToast }) {
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState(() => DoctorAuthService.getDoctors());
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const refreshDoctors = () => {
@@ -10,7 +10,6 @@ export default function AdminVerificationView({ onShowToast }) {
   };
 
   useEffect(() => {
-    refreshDoctors();
     const unsubscribe = DoctorAuthService.subscribe(() => refreshDoctors());
     return () => unsubscribe();
   }, []);

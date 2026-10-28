@@ -3,7 +3,7 @@ import {
   analyzeDomainResponses,
   crosswalkRiskToPsychometrics,
   NORMATIVE_CALIBRATION_DATA
-} from '../data/datasets';
+} from '../data/datasets.js';
 
 export { analyzeDomainResponses };
 
@@ -12,7 +12,7 @@ export function sanitizeTranscript(text) {
   if (!text || typeof text !== 'string') return '';
   let cleaned = text.trim();
   if (cleaned.length < 2) return '';
-  
+
   // Filter out default placeholder and skip statements
   const lower = cleaned.toLowerCase();
   if (
@@ -54,25 +54,41 @@ export function analyzeLinguisticStress(text) {
   return calculateLexicalStressExtended(sanitized);
 }
 
-// Compute composite risk, physical stress, incongruence, and SHAP attributions
+// Sanitize numeric inputs to safe unit interval [0.0, 1.0] with finite validation
+export function clampUnitInterval(val, fallback = 0.0) {
+  if (val === null || val === undefined) return fallback;
+  const num = typeof val === 'number' ? val : parseFloat(val);
+  if (!Number.isFinite(num) || Number.isNaN(num)) return fallback;
+  return Math.max(0.0, Math.min(1.0, num));
+}
+
+// Compute composite risk, physical stress, incongruence, and transparent feature attributions
 // Supports adaptive channel re-weighting and signal quality verification
 export function calculateTelemetryMetrics(au4, au15, acousticJitter, textSentiment, options = {}) {
-  const hasFacial = options.hasFacial !== undefined ? Boolean(options.hasFacial) : (au4 !== null && au4 !== undefined && !isNaN(au4));
-  const hasAudio = options.hasAudio !== undefined ? Boolean(options.hasAudio) : (acousticJitter !== null && acousticJitter !== undefined && !isNaN(acousticJitter));
-  const isTextValid = options.isTextValid !== undefined ? Boolean(options.isTextValid) : (textSentiment !== null && textSentiment !== undefined && !isNaN(textSentiment));
+  const hasFacial = options.hasFacial !== undefined
+    ? Boolean(options.hasFacial)
+    : (au4 !== null && au4 !== undefined && Number.isFinite(Number(au4)));
+  const hasAudio = options.hasAudio !== undefined
+    ? Boolean(options.hasAudio)
+    : (acousticJitter !== null && acousticJitter !== undefined && Number.isFinite(Number(acousticJitter)));
+  const isTextValid = options.isTextValid !== undefined
+    ? Boolean(options.isTextValid)
+    : (textSentiment !== null && textSentiment !== undefined && Number.isFinite(Number(textSentiment)));
 
-  const safeAu4 = hasFacial ? Math.max(0, Math.min(1, parseFloat(au4) || 0)) : 0;
-  const safeAu15 = hasFacial ? Math.max(0, Math.min(1, parseFloat(au15) || 0)) : 0;
-  const safeJitter = hasAudio ? Math.max(0, Math.min(1, parseFloat(acousticJitter) || 0)) : 0;
-  const safeSentiment = Math.max(0, Math.min(1, parseFloat(textSentiment) || 0.15));
+  const isInsufficientData = !hasFacial && !hasAudio && !isTextValid;
+
+  const safeAu4 = hasFacial ? clampUnitInterval(au4, 0.0) : 0.0;
+  const safeAu15 = hasFacial ? clampUnitInterval(au15, 0.0) : 0.0;
+  const safeJitter = hasAudio ? clampUnitInterval(acousticJitter, 0.0) : 0.0;
+  const safeSentiment = clampUnitInterval(textSentiment, 0.15);
 
   // Adaptive channel weights based on active, validated modalities (Base sum = 10.0)
-  // Ensures patient's verbal disclosure receives full clinical diagnostic weighting (40%)
+  // Ensures patient's verbal disclosure receives full clinical weighting when available
   const baseWeights = {
     au4: hasFacial ? 2.2 : 0,
     au15: hasFacial ? 1.8 : 0,
     jitter: hasAudio ? 2.0 : 0,
-    text: isTextValid ? (hasFacial && hasAudio ? 4.0 : !hasFacial && !hasAudio ? 10.0 : 5.5) : 1.0
+    text: isTextValid ? (hasFacial && hasAudio ? 4.0 : (!hasFacial && !hasAudio ? 10.0 : 5.5)) : (isInsufficientData ? 1.0 : 0)
   };
 
   const totalBase = baseWeights.au4 + baseWeights.au15 + baseWeights.jitter + baseWeights.text;
@@ -137,43 +153,113 @@ export function calculateTelemetryMetrics(au4, au15, acousticJitter, textSentime
   if (!hasAudio) warnings.push('Audio prosody inactive: score re-weighted across linguistic responses.');
   if (!isTextValid) warnings.push('Spoken/written responses contained minimal signal.');
 
-  // SHAP Feature Attribution breakdown
+  if (isInsufficientData) {
+    warnings.push('All telemetry channels inactive or empty: score is an uncalibrated default baseline.');
+  }
+
+  // Transparent linear feature contribution breakdown
   const weightedAu4 = safeAu4 * au4Weight;
   const weightedAu15 = safeAu15 * au15Weight;
   const weightedJitter = safeJitter * jitterWeight;
   const weightedText = safeSentiment * textWeight;
   const totalWeighted = weightedAu4 + weightedAu15 + weightedJitter + weightedText;
 
-  let shapAttributions = [
+  const shapAttributions = [
     {
       name: 'AU04 Eyebrow Furrow',
       channel: 'Facial Corrugator',
-      weight: totalWeighted > 0 ? Math.round((weightedAu4 / totalWeighted) * 100) : (hasFacial ? 25 : 0),
-      impact: hasFacial ? `+${Math.round((safeAu4 * 30))}% distress contribution` : 'Inactive modality',
+      category: 'MEASURED_SIGNAL_FEATURE',
+      isAvailable: hasFacial,
+      weight: totalWeighted > 0 && hasFacial ? Math.round((weightedAu4 / totalWeighted) * 100) : (hasFacial ? 25 : 0),
+      points: hasFacial ? parseFloat((safeAu4 * au4Weight).toFixed(2)) : 0,
+      impact: hasFacial ? `+${(safeAu4 * au4Weight).toFixed(2)} pts to risk indicator` : 'Inactive modality (0 pts)',
       color: 'var(--text-primary)'
     },
     {
       name: 'AU15 Lip Depressor',
       channel: 'Facial DAO',
-      weight: totalWeighted > 0 ? Math.round((weightedAu15 / totalWeighted) * 100) : (hasFacial ? 25 : 0),
-      impact: hasFacial ? `+${Math.round((safeAu15 * 25))}% distress contribution` : 'Inactive modality',
+      category: 'MEASURED_SIGNAL_FEATURE',
+      isAvailable: hasFacial,
+      weight: totalWeighted > 0 && hasFacial ? Math.round((weightedAu15 / totalWeighted) * 100) : (hasFacial ? 25 : 0),
+      points: hasFacial ? parseFloat((safeAu15 * au15Weight).toFixed(2)) : 0,
+      impact: hasFacial ? `+${(safeAu15 * au15Weight).toFixed(2)} pts to risk indicator` : 'Inactive modality (0 pts)',
       color: 'var(--text-secondary)'
     },
     {
       name: 'Acoustic Pitch Tremor',
-      channel: 'Vocal Prosody',
-      weight: totalWeighted > 0 ? Math.round((weightedJitter / totalWeighted) * 100) : (hasAudio ? 25 : 0),
-      impact: hasAudio ? `+${Math.round((safeJitter * 25))}% distress contribution` : 'Inactive modality',
-      color: 'var(--text-secondary)'
+      channel: 'Vocal Frequency Scope',
+      category: 'MEASURED_SIGNAL_FEATURE',
+      isAvailable: hasAudio,
+      weight: totalWeighted > 0 && hasAudio ? Math.round((weightedJitter / totalWeighted) * 100) : (hasAudio ? 25 : 0),
+      points: hasAudio ? parseFloat((safeJitter * jitterWeight).toFixed(2)) : 0,
+      impact: hasAudio ? `+${(safeJitter * jitterWeight).toFixed(2)} pts to risk indicator` : 'Inactive modality (0 pts)',
+      color: 'var(--accent-teal)'
     },
     {
-      name: 'Verbal Sentiment Stress',
-      channel: 'DeBERTa Semantics',
-      weight: totalWeighted > 0 ? Math.round((weightedText / totalWeighted) * 100) : 25,
-      impact: `+${Math.round((safeSentiment * 20))}% distress contribution`,
+      name: 'Linguistic Sentiment Stress',
+      channel: 'Clinical Lexicon Match',
+      category: 'USER_REPORTED_INFORMATION',
+      isAvailable: isTextValid,
+      weight: totalWeighted > 0 && isTextValid ? Math.round((weightedText / totalWeighted) * 100) : (isTextValid ? 25 : 0),
+      points: isTextValid ? parseFloat((safeSentiment * textWeight).toFixed(2)) : 0,
+      impact: isTextValid ? `+${(safeSentiment * textWeight).toFixed(2)} pts to risk indicator` : 'Inactive / minimal text (0 pts)',
       color: 'var(--text-muted)'
     }
   ];
+
+  // Explicit Signal Provenance & Epistemological Categorization
+  const inputMetadata = {
+    pipelineVersion: '1.2.0-verified',
+    timestamp: new Date().toISOString(),
+    isInsufficientData,
+    provenance: {
+      userReported: {
+        category: 'USER_REPORTED_INFORMATION',
+        textAvailable: isTextValid,
+        sentimentScore: safeSentiment,
+        method: 'EXPANDED_CLINICAL_LEXICON (Negation lookbehind & adversative analysis)'
+      },
+      measuredSignals: {
+        category: 'MEASURED_SIGNAL_FEATURE',
+        facialTracking: {
+          available: hasFacial,
+          au04: safeAu4,
+          au15: safeAu15,
+          detector: 'MediaPipe 3D FaceMesh Landmark Euclidean Normalization'
+        },
+        audioProsody: {
+          available: hasAudio,
+          jitter: safeJitter,
+          analyzer: 'Web Audio AnalyserNode 256-bin FFT Peak Tremor'
+        }
+      },
+      modelPredictions: {
+        category: 'MODEL_PREDICTION',
+        runtimeModel: 'Google MediaPipe FaceMesh (Pretrained 468 3D landmarks via WebAssembly)',
+        customTrainedModelsInRepo: false,
+        note: 'No custom trained neural networks exist in this repository'
+      },
+      ruleBasedCalculations: {
+        category: 'RULE_BASED_CALCULATION',
+        formula: 'Adaptive Linear Combination: sum(channel_value * scaled_channel_weight)',
+        baseWeights: { au4: baseWeights.au4, au15: baseWeights.au15, jitter: baseWeights.jitter, text: baseWeights.text },
+        scaledWeights: {
+          au4: parseFloat(au4Weight.toFixed(2)),
+          au15: parseFloat(au15Weight.toFixed(2)),
+          jitter: parseFloat(jitterWeight.toFixed(2)),
+          text: parseFloat(textWeight.toFixed(2))
+        },
+        incongruenceIndex,
+        affectMaskingApplied: Boolean(safeSentiment <= 0.30 && physicalStress >= 0.65)
+      },
+      aiInterpretations: {
+        category: 'AI_GENERATED_INTERPRETATION',
+        narrativeType: 'Rule-Based Clinical Decision Support Template',
+        diagnosticClaim: false,
+        nonDiagnosticDisclaimer: 'MindVision provides non-diagnostic prototype decision support only.'
+      }
+    }
+  };
 
   return {
     au4: safeAu4,
@@ -187,13 +273,20 @@ export function calculateTelemetryMetrics(au4, au15, acousticJitter, textSentime
     shapAttributions,
     warnings,
     hasFacial,
-    hasAudio
+    hasAudio,
+    isTextValid,
+    isInsufficientData,
+    inputMetadata
   };
 }
 
 // Generate context-aware clinical narrative
 export function generateClinicalNarrative(metrics) {
-  const { compositeRisk, incongruenceIndex, au4, au15, acousticJitter, riskLevel } = metrics;
+  const { compositeRisk, incongruenceIndex, au4, au15, acousticJitter, riskLevel, isInsufficientData } = metrics;
+
+  if (isInsufficientData) {
+    return `Assessment Inconclusive: Video, audio, and verbal channels had insufficient active signal to establish a clinical distress baseline. Multimodal indices reflect resting baseline defaults. Recommend repeating check-in with enabled microphone or camera.`;
+  }
 
   if (riskLevel === 'SEVERE') {
     if (incongruenceIndex >= 0.40) {

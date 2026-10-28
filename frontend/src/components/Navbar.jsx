@@ -8,12 +8,10 @@ import {
   IconSun,
   IconMoon,
   IconMenu,
-  IconX,
-  IconSparkles,
-  IconCalendar,
-  IconBookOpen
+  IconX
 } from './Icons';
 import { Drawer, IconButton, InteractiveButton } from './primitives';
+import NetworkStatusBadge from './NetworkStatusBadge';
 
 export default function Navbar({
   activeTab,
@@ -132,6 +130,13 @@ export default function Navbar({
                 onClick={() => handleNavClick('home')}
               >
                 <span>Home</span>
+              </button>
+              <button
+                type="button"
+                className={`nav-link-btn ${activeTab === 'assessments' ? 'active' : ''}`}
+                onClick={() => handleNavClick('assessments')}
+              >
+                <span>Assessments</span>
               </button>
               <button
                 type="button"
@@ -353,6 +358,9 @@ export default function Navbar({
             <span>Private &amp; Secure</span>
           </div>
 
+          {/* Real-Time Connectivity / Offline Status Badge */}
+          <NetworkStatusBadge />
+
           {/* Instant Safety-Critical Crisis Support Button */}
           <button
             type="button"
@@ -465,6 +473,13 @@ export default function Navbar({
                   style={{ justifyContent: 'flex-start', width: '100%' }}
                 >
                   Home Overview
+                </InteractiveButton>
+                <InteractiveButton
+                  variant={activeTab === 'assessments' ? 'primary' : 'ghost'}
+                  onClick={() => handleNavClick('assessments')}
+                  style={{ justifyContent: 'flex-start', width: '100%' }}
+                >
+                  Assessment Centre
                 </InteractiveButton>
                 <InteractiveButton
                   variant={activeTab === 'wellness' ? 'primary' : 'ghost'}

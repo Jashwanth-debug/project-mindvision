@@ -28,3 +28,6 @@ build/
 .env
 .env.*
 !.env.example
+# Generated desktop builds and source archives
+dist-desktop/
+MindVision_Clinical_AI_Source_Code.zip

@@ -247,8 +247,15 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
     function initFaceMesh() {
       try {
         if (!window.FaceMesh) return;
+        const getMediaPipeAsset = (file) => {
+          if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+            const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            return `${basePath}vendor/mediapipe/${file}`;
+          }
+          return `/vendor/mediapipe/${file}`;
+        };
         const fm = new window.FaceMesh({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+          locateFile: (file) => getMediaPipeAsset(file)
         });
         fm.setOptions({
           maxNumFaces: 1,
@@ -273,11 +280,22 @@ export default function LiveSensorModal({ isOpen, onClose, onSyncTelemetry }) {
     if (!window.FaceMesh && !document.getElementById('mediapipe-facemesh-cdn')) {
       const script = document.createElement('script');
       script.id = 'mediapipe-facemesh-cdn';
-      script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+      const localScriptPath = (typeof window !== 'undefined' && window.location.protocol === 'file:')
+        ? `${window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1)}vendor/mediapipe/face_mesh.js`
+        : '/vendor/mediapipe/face_mesh.js';
+      script.src = localScriptPath;
       script.async = true;
-      script.crossOrigin = 'anonymous';
       script.onload = () => {
         if (isMounted) initFaceMesh();
+      };
+      script.onerror = () => {
+        const fallback = document.createElement('script');
+        fallback.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+        fallback.async = true;
+        fallback.onload = () => {
+          if (isMounted) initFaceMesh();
+        };
+        document.head.appendChild(fallback);
       };
       document.head.appendChild(script);
     } else if (window.FaceMesh) {

@@ -2,21 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * MindVision Clinical AI - Multimodal Telemetry Timeline & Session Replay
- * 
+ *
  * Renders multi-channel time-series telemetry tracks:
  * - Face (AU04, AU15)
  * - Voice (Prosody Tremor & RMS Level)
  * - Incongruence (Cross-modal divergence)
  * - Prototype Composite Risk Indicator
  * - Signal Quality & Milestone Events
- * 
+ *
  * Supports interactive inspection on hover/click, play/pause replay scrubbing,
  * and explicit data provenance labeling (LIVE vs SANDBOX).
  */
 
 export default function MultimodalTimeline({
   timelinePoints = [],
-  activePoint = null,
   onSelectPoint = null,
   isLive = false
 }) {

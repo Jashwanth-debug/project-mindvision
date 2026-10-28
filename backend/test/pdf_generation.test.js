@@ -2,8 +2,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import {
   generateCheckInPdf,
-  sanitizePdfText,
-  getPdfFilename
+  generatePatientHistoryPdf,
+  sanitizePdfText
 } from '../../frontend/src/utils/pdfReportGenerator.js';
 
 describe('PDF Generation Pipeline & Integrity', () => {
@@ -84,5 +84,117 @@ describe('PDF Generation Pipeline & Integrity', () => {
     const arrayBuffer = await result.blob.arrayBuffer();
     const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
     assert.strictEqual(headerStr, '%PDF-');
+  });
+
+  describe('generatePatientHistoryPdf', () => {
+    const sampleRecords = [
+      {
+        id: 'rec_1',
+        timestamp: '2026-09-20T10:00:00.000Z',
+        dateIso: '2026-09-20T10:00:00.000Z',
+        riskLevel: 'MINIMAL',
+        compositeRisk: 1.5,
+        summary: 'Steady & calm pattern reported',
+        text: 'Routine check-in, feeling refreshed.'
+      },
+      {
+        id: 'rec_2',
+        timestamp: '2026-09-22T14:30:00.000Z',
+        dateIso: '2026-09-22T14:30:00.000Z',
+        riskLevel: 'ELEVATED',
+        compositeRisk: 5.8,
+        summary: 'Subtle signs of tension',
+        text: 'Experiencing deadline stress at work.'
+      }
+    ];
+
+    it('generates valid history PDF for multiple records with correct metadata and headers', async () => {
+      const result = await generatePatientHistoryPdf(sampleRecords, { save: false });
+
+      assert.ok(result);
+      assert.strictEqual(result.success, true);
+      assert.ok(/^MindVision_Patient_History_\d{4}-\d{2}-\d{2}\.pdf$/.test(result.filename));
+      assert.ok(result.blob instanceof Blob);
+      assert.strictEqual(result.blob.type, 'application/pdf');
+      assert.ok(result.size > 1500, `Expected history PDF size > 1.5KB, got ${result.size}`);
+
+      const arrayBuffer = await result.blob.arrayBuffer();
+      const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
+      assert.strictEqual(headerStr, '%PDF-');
+    });
+
+    it('handles single record correctly without errors', async () => {
+      const result = await generatePatientHistoryPdf([sampleRecords[0]], { save: false });
+      assert.ok(result);
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.blob.type, 'application/pdf');
+
+      const arrayBuffer = await result.blob.arrayBuffer();
+      const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
+      assert.strictEqual(headerStr, '%PDF-');
+    });
+
+    it('handles missing composite risk and empty optional fields safely', async () => {
+      const incompleteRecords = [
+        {
+          id: 'rec_no_risk',
+          timestamp: '2026-09-25T08:00:00.000Z',
+          riskLevel: null,
+          compositeRisk: null,
+          summary: null,
+          text: null
+        }
+      ];
+
+      const result = await generatePatientHistoryPdf(incompleteRecords, { save: false });
+      assert.ok(result);
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.blob.type, 'application/pdf');
+
+      const arrayBuffer = await result.blob.arrayBuffer();
+      const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
+      assert.strictEqual(headerStr, '%PDF-');
+    });
+
+    it('handles long multiline reflections across page breaks without corruption', async () => {
+      const longText = 'This is a detailed reflection on emotional resilience and day-to-day balance. '.repeat(40);
+      const longRecord = [
+        {
+          id: 'rec_long',
+          timestamp: '2026-09-26T12:00:00.000Z',
+          dateIso: '2026-09-26T12:00:00.000Z',
+          riskLevel: 'MODERATE',
+          compositeRisk: 3.8,
+          summary: 'Extended session with substantial patient commentary.',
+          text: longText
+        }
+      ];
+
+      const result = await generatePatientHistoryPdf(longRecord, { save: false });
+      assert.ok(result);
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.blob.type, 'application/pdf');
+      assert.ok(result.size > 2000);
+
+      const arrayBuffer = await result.blob.arrayBuffer();
+      const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
+      assert.strictEqual(headerStr, '%PDF-');
+    });
+
+    it('gracefully throws an error when records array is empty or invalid', async () => {
+      await assert.rejects(
+        async () => {
+          await generatePatientHistoryPdf([], { save: false });
+        },
+        /There are no check-in records to export/
+      );
+
+      await assert.rejects(
+        async () => {
+          await generatePatientHistoryPdf(null, { save: false });
+        },
+        /There are no check-in records to export/
+      );
+    });
   });
 });

@@ -6,10 +6,7 @@ import {
   IconBell,
   IconBellOff,
   IconTarget,
-  IconClock,
-  IconCheck,
-  IconSparkles,
-  IconShieldCheck
+  IconClock
 } from '../Icons';
 
 export default function RemindersGoalsView({

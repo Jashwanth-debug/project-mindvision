@@ -1,6 +1,6 @@
 /**
  * MindVision Clinical AI - Authentication & Role-Based Authorization Middleware
- * 
+ *
  * Provides:
  * - RFC 7519 compliant HMAC-SHA256 JWT generation and verification using Node crypto
  * - Constant-time signature comparison to prevent timing side-channel attacks
@@ -14,7 +14,7 @@ const SECRET_KEY = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY || 'mind
 
 /**
  * Generate a signed JWT token
- * @param {Object} payload 
+ * @param {Object} payload
  * @param {number} expiresInSeconds (default 24h)
  * @returns {string}
  */
@@ -36,18 +36,20 @@ export function generateToken(payload, expiresInSeconds = 86400) {
 
 /**
  * Verify and decode a JWT token
- * @param {string} token 
+ * @param {string} token
  * @returns {Object|null} Decoded payload or null if invalid
  */
 export function verifyToken(token) {
   if (!token || typeof token !== 'string') return null;
 
-  // Support dev/test tokens for automated audits and verification
-  if (token === 'test-admin-token') {
-    return { id: 'admin_test', name: 'Test Administrator', role: 'ADMIN' };
-  }
-  if (token === 'test-clinician-token' || token === 'test-doctor-token') {
-    return { id: 'doctor_test', name: 'Test Clinician', role: 'DOCTOR' };
+  // Support dev/test tokens for automated audits and verification in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    if (token === 'test-admin-token') {
+      return { id: 'admin_test', name: 'Test Administrator', role: 'ADMIN' };
+    }
+    if (token === 'test-clinician-token' || token === 'test-doctor-token') {
+      return { id: 'doctor_test', name: 'Test Clinician', role: 'DOCTOR' };
+    }
   }
 
   const parts = token.split('.');
@@ -86,7 +88,7 @@ export function verifyToken(token) {
 export function requireAuth(allowedRoles = []) {
   return (req, res, next) => {
     const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
-    
+
     if (!authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,

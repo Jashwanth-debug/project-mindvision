@@ -4,7 +4,6 @@ import {
   IconX,
   IconMoonStar,
   IconCheck,
-  IconSparkles,
   IconArrowRight
 } from '../Icons';
 

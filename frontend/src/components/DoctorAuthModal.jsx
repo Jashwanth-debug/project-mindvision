@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { DoctorAuthService } from '../services/doctorAuthService';
 import {
-  IconLock,
   IconEye,
-  IconShieldCheck,
   IconAlertCircle
 } from './Icons';
-import { Modal, InteractiveButton, IconButton } from './primitives';
+import { Modal, InteractiveButton } from './primitives';
 
 /**
  * DoctorAuthModal - Production-Grade Clinician Authentication & Onboarding
- * 
+ *
  * Features:
  * - Inline form validation for full name, email, credentials, password
  * - Password visibility toggle (show / hide)
@@ -134,7 +132,7 @@ export default function DoctorAuthModal({
       maxWidth="580px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        
+
         {/* Tab Switcher: Role Login vs Register Doctor */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
           <InteractiveButton

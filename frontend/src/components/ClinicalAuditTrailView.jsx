@@ -3,10 +3,12 @@ import { ClinicalAuditService } from '../services/clinicalAuditService';
 
 /**
  * MindVision Clinical AI - Clinical Audit Trail View
- * 
+ *
  * Displays an immutable audit timeline of all clinical, sensor, consultation,
  * and documentation events without storing raw video/audio streams.
  */
+
+const generateAuditFilename = () => `mindvision_clinical_audit_${Date.now()}.json`;
 
 export default function ClinicalAuditTrailView({ onShowToast }) {
   const [filterType, setFilterType] = useState('ALL');
@@ -26,7 +28,7 @@ export default function ClinicalAuditTrailView({ onShowToast }) {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(auditLogs, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `mindvision_clinical_audit_${Date.now()}.json`);
+    downloadAnchor.setAttribute('download', generateAuditFilename());
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

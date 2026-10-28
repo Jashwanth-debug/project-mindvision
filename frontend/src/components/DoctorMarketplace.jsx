@@ -15,12 +15,15 @@ import {
 } from './Icons';
 import { Drawer, InteractiveButton, IconButton } from './primitives';
 
+const getVerifiedClinicians = () => DoctorAuthService.getDoctors().filter((d) => d.verificationStatus === 'VERIFIED');
+const createConsultSessionId = () => `consult_${Math.random().toString(36).substring(2, 9)}`;
+
 export default function DoctorMarketplace({
   onConnectDoctor,
   onShowToast,
   currentTelemetrySnapshot
 }) {
-  const [clinicians, setClinicians] = useState([]);
+  const [clinicians, setClinicians] = useState(getVerifiedClinicians);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('ALL');
   const [priceFilter, setPriceFilter] = useState('ALL'); // ALL, FREE, UNDER_250, UNDER_350
@@ -30,13 +33,10 @@ export default function DoctorMarketplace({
   const [isPreAuthorizing, setIsPreAuthorizing] = useState(false);
 
   const loadClinicians = () => {
-    const allDocs = DoctorAuthService.getDoctors();
-    const verifiedDocs = allDocs.filter((d) => d.verificationStatus === 'VERIFIED');
-    setClinicians(verifiedDocs);
+    setClinicians(getVerifiedClinicians());
   };
 
   useEffect(() => {
-    loadClinicians();
     const unsubscribe = DoctorAuthService.subscribe(() => loadClinicians());
     return () => unsubscribe();
   }, []);
@@ -102,7 +102,7 @@ export default function DoctorMarketplace({
       label: `Teletherapy Consult Requested with ${doctor.fullName || doctor.name}`,
       actor: 'PATIENT',
       actorId: 'MV-PATIENT-8821',
-      sessionId: `consult_${Math.random().toString(36).substring(2, 9)}`,
+      sessionId: createConsultSessionId(),
       status: 'PENDING',
       details: `Hold: ₹${holdAmount}. Rate: ₹${doctor.ratePerMinute || 12}/min. Speciality: ${doctor.specialization || 'Psychiatry'}.`
     });
@@ -129,9 +129,9 @@ export default function DoctorMarketplace({
     const isOnline = doc.availabilityStatus === 'ONLINE' || doc.isAvailable;
     let matchScore = 84;
     const specs = doc.specialties || [doc.specialization || ''];
-    const hasSpecialtyMatch = specs.some(s => 
-      s.toLowerCase().includes('somatic') || 
-      s.toLowerCase().includes('affective') || 
+    const hasSpecialtyMatch = specs.some(s =>
+      s.toLowerCase().includes('somatic') ||
+      s.toLowerCase().includes('affective') ||
       s.toLowerCase().includes('crisis') ||
       s.toLowerCase().includes('prosody') ||
       s.toLowerCase().includes('anxiety')
@@ -205,7 +205,7 @@ export default function DoctorMarketplace({
         {/* Quick Filter Chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>QUICK FILTERS:</span>
-          
+
           <button
             type="button"
             className={`btn-secondary ${priceFilter === 'ALL' && !availableOnly ? 'active' : ''}`}
@@ -553,7 +553,7 @@ export default function DoctorMarketplace({
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '0.04em' }}>
                     TRANSPARENT BILLING ESTIMATE
                   </div>
-                  
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     <span>Standard Consultation Fee:</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{isFree ? '₹0.00' : `₹${consultFee}.00`}</span>
@@ -681,7 +681,7 @@ function SpecialistAvatar({ doc }) {
 
 /**
  * SpecialistStrip - Compact, horizontally-scrollable strip for patient comfort
- * 
+ *
  * Features:
  * - Visually secondary to the AI Check-in
  * - CSS scroll snapping and momentum scrolling
@@ -692,7 +692,7 @@ function SpecialistAvatar({ doc }) {
  * - Focus restoration to the selected specialist card on drawer close
  */
 export function SpecialistStrip({ onSelectDoctor, onConnectDoctor, setActiveTab, onShowToast }) {
-  const [specialists, setSpecialists] = useState([]);
+  const [specialists, setSpecialists] = useState(getVerifiedClinicians);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollRef = useRef(null);
@@ -701,9 +701,6 @@ export function SpecialistStrip({ onSelectDoctor, onConnectDoctor, setActiveTab,
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    const docs = DoctorAuthService.getDoctors();
-    const verified = docs.filter((d) => d.verificationStatus === 'VERIFIED');
-    setSpecialists(verified);
     const unsub = DoctorAuthService.subscribe(() => {
       const updated = DoctorAuthService.getDoctors().filter((d) => d.verificationStatus === 'VERIFIED');
       setSpecialists(updated);
@@ -719,7 +716,7 @@ export function SpecialistStrip({ onSelectDoctor, onConnectDoctor, setActiveTab,
   };
 
   useEffect(() => {
-    checkScroll();
+    Promise.resolve().then(checkScroll);
     const el = scrollRef.current;
     if (el) {
       el.addEventListener('scroll', checkScroll, { passive: true });

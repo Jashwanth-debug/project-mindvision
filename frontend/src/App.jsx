@@ -16,11 +16,13 @@ import PatientHistoryView from './components/PatientHistoryView';
 import CrisisSupport from './components/CrisisSupport';
 import ErrorBoundary from './components/ErrorBoundary';
 import WellnessHubView from './components/wellness/WellnessHubView';
+import AssessmentCentreView from './components/AssessmentCentreView';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 import { PageTransition } from './components/primitives';
 import { createTeletherapySession } from './data/clinicians';
 import { DoctorAuthService } from './services/doctorAuthService';
+import { DesktopBridge } from './services/desktopBridge';
 
 // Pre-populated clinical evaluation records as specified in requirements
 const INITIAL_RECORDS = [
@@ -35,6 +37,7 @@ const INITIAL_RECORDS = [
     compositeRisk: 1.2,
     incongruence: 0.11,
     riskLevel: 'MINIMAL',
+    isDemo: true,
     summary: 'Steady & calm pattern reported',
     explanation: 'Your self-reported answers and estimated signals reflect a steady, calm pattern today.',
     text: "Patient states: 'Routine bi-weekly check-in. Work load is manageable and sleep is restful.'",
@@ -55,6 +58,7 @@ const INITIAL_RECORDS = [
     compositeRisk: 0.8,
     incongruence: 0.09,
     riskLevel: 'MINIMAL',
+    isDemo: true,
     summary: 'Steady & calm pattern reported',
     explanation: 'Your self-reported answers and estimated signals reflect a steady, calm pattern today.',
     text: "Patient states: 'No acute stressors or physical complaints reported.'",
@@ -75,6 +79,7 @@ const INITIAL_RECORDS = [
     compositeRisk: 5.6,
     incongruence: 0.17,
     riskLevel: 'ELEVATED',
+    isDemo: true,
     summary: 'It might help to talk with someone',
     explanation: 'We noticed subtle signs of stress in your responses today. Remember that carrying a lot is hard, and gentle support is always available.',
     text: "Patient states: 'Work deadlines have been accumulating; struggling slightly with mid-day fatigue.'",
@@ -95,6 +100,7 @@ const INITIAL_RECORDS = [
     compositeRisk: 7.8,
     incongruence: 0.58,
     riskLevel: 'SEVERE',
+    isDemo: true,
     summary: 'It might help to talk with someone',
     explanation: 'We noticed signs of tension in your responses. Gentle, confidential support from a caring listener is available.',
     text: "Patient states: 'Everything is fine. Really, I can handle it.'",
@@ -159,6 +165,17 @@ export default function App() {
     }
   }, [theme]);
 
+  // Initialize Desktop SQLite Persistence & Load On-Device Records
+  useEffect(() => {
+    DesktopBridge.initializeDesktopPersistence().then(() => {
+      DesktopBridge.loadCheckInRecords(INITIAL_RECORDS).then((loaded) => {
+        if (Array.isArray(loaded) && loaded.length > 0) {
+          setRecords(loaded);
+        }
+      });
+    });
+  }, []);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
@@ -214,8 +231,19 @@ export default function App() {
 
   // Add a new patient record
   const handleSavePatientRecord = (newRecord) => {
+    if (!newRecord || typeof newRecord !== 'object') return;
+    const validatedRecord = {
+      ...newRecord,
+      id: newRecord.id || `scr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: newRecord.timestamp || new Date().toLocaleString(),
+      dateIso: newRecord.dateIso || new Date().toISOString(),
+      isDemo: false
+    };
+
+    DesktopBridge.saveCheckInRecord(validatedRecord);
+
     setRecords((prev) => {
-      const updated = [newRecord, ...prev];
+      const updated = [validatedRecord, ...prev];
       try {
         localStorage.setItem(STORAGE_KEY_PATIENT_RECORDS, JSON.stringify(updated));
       } catch (err) {
@@ -225,12 +253,13 @@ export default function App() {
     });
 
     // If new record is severe, trigger active escalation queue
-    if (newRecord.riskLevel === 'SEVERE') {
-      setActiveEscalation(newRecord);
+    if (validatedRecord.riskLevel === 'SEVERE') {
+      setActiveEscalation(validatedRecord);
     }
   };
 
   const handleDeletePatientRecord = (recordId) => {
+    DesktopBridge.deleteCheckInRecord(recordId);
     setRecords((prev) => {
       const updated = prev.filter((r) => (r.id || r.timestamp) !== recordId);
       try {
@@ -409,6 +438,14 @@ export default function App() {
 
             {activeTab === 'admin' && (
               <AdminVerificationView onShowToast={showToast} />
+            )}
+
+            {activeTab === 'assessments' && (
+              <AssessmentCentreView
+                onLaunchMultimodalCheckIn={() => setActiveTab('assessment')}
+                setActiveTab={setActiveTab}
+                onShowToast={showToast}
+              />
             )}
 
             {activeTab === 'assessment' && (

@@ -1,6 +1,6 @@
 /**
  * MindVision Clinical AI - Front-End Neural Text-To-Speech (TTS) Service
- * 
+ *
  * Commercial-grade speech synthesis pipeline providing:
  * - Cloud Neural Audio Streaming via backend proxy (Azure Speech, OpenAI, ElevenLabs)
  * - Automatic pre-buffering and client-side Blob URL caching for repeated phrases
@@ -40,7 +40,7 @@ export class TTSService {
    */
   static async ensureVoicesLoaded(timeoutMs = 600) {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
-    
+
     if (gCachedFallbackVoices && gCachedFallbackVoices.length > 0) {
       return gCachedFallbackVoices;
     }
@@ -221,7 +221,7 @@ export class TTSService {
   /**
    * Main speak method: sends text to neural TTS backend proxy, plays audio,
    * and falls back to window.speechSynthesis silently on error.
-   * 
+   *
    * @param {string} text - Plain language text to speak
    * @param {object} options - { rate: 0.92, pitch: '0%', style: 'chat', voice, provider }
    * @param {object} callbacks - { onStart, onFinish, onLoading, onError }
@@ -264,9 +264,19 @@ export class TTSService {
       return;
     }
 
-    // 2. Network Path: Request neural audio from backend TTS proxy
+    // 2. Offline Path: If offline, instantly use local speech synthesis with zero delay
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      if (onLoading) onLoading(false);
+      this.fallbackToSpeechSynthesis(cleanText, onStart, onFinish);
+      return;
+    }
+
+    // 3. Network Path: Request neural audio from backend TTS proxy with bounded timeout
     const controller = new AbortController();
     this.activeAbortController = controller;
+    const timeoutId = setTimeout(() => {
+      try { controller.abort(); } catch {}
+    }, 2500);
     if (onLoading) onLoading(true);
 
     try {
@@ -334,6 +344,7 @@ export class TTSService {
       this.fallbackToSpeechSynthesis(cleanText, onStart, onFinish);
       if (onError) onError(err);
     } finally {
+      clearTimeout(timeoutId);
       if (this.activeAbortController === controller) {
         this.activeAbortController = null;
       }
@@ -379,7 +390,7 @@ export class TTSService {
           }
         });
       }
-    } catch (e) {
+    } catch {
       if (onPlayError) onPlayError();
     }
   }

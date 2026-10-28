@@ -13,10 +13,18 @@ export const DoctorController = {
   },
 
   login(req, res) {
-    const { email, doctorId, role } = req.body || {};
+    const { email, doctorId, role, password } = req.body || {};
 
-    // Admin login
+    // Admin login with credential verification
+    const adminPassword = process.env.ADMIN_PASSWORD || 'mindvision_admin_2026';
     if (role === 'ADMIN' || (email && email.toLowerCase() === 'admin@mindvision.ai')) {
+      if (!password || password !== adminPassword) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Invalid administrative password'
+        });
+      }
       const token = generateToken({
         id: 'admin_root',
         name: 'Clinical Verification Admin',
@@ -31,19 +39,30 @@ export const DoctorController = {
       });
     }
 
-    // Doctor login by ID or Email
+    // Doctor login by ID or Email (Requires identification)
     let doctor = null;
     if (doctorId) {
       doctor = DoctorAuthService.getDoctorById(doctorId);
     } else if (email) {
       doctor = DoctorAuthService.getDoctors().find(d => d.email && d.email.toLowerCase() === email.toLowerCase());
-    } else {
-      // Demo doctor fallback
-      doctor = DoctorAuthService.getDoctors()[0];
     }
 
     if (!doctor) {
-      return res.status(401).json({ success: false, message: 'Doctor account not found' });
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Valid doctor account identifier (doctorId or email) required'
+      });
+    }
+
+    // Verify doctor password (support default demo credential for seeded clinicians)
+    const expectedDoctorPassword = doctor.password || process.env.DOCTOR_DEFAULT_PASSWORD || 'clinician2026';
+    if (!password || password !== expectedDoctorPassword) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Invalid clinician password'
+      });
     }
 
     const token = generateToken({

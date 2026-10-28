@@ -7,19 +7,16 @@ import PrivateJournalView from './PrivateJournalView';
 import HabitInsightsView from './HabitInsightsView';
 import RemindersGoalsView from './RemindersGoalsView';
 import {
-  IconSparkles,
   IconShieldCheck,
   IconWind,
   IconSmile,
   IconBookOpen,
   IconBarChart2,
   IconTarget,
-  IconHeartPulse,
   IconMoonStar,
   IconCompass,
   IconChevronRight,
-  IconLeaf,
-  IconCoffee
+  IconLeaf
 } from '../Icons';
 
 export default function WellnessHubView({
@@ -39,23 +36,27 @@ export default function WellnessHubView({
 
   // Sync initial activity prop if changed
   useEffect(() => {
-    if (initialActivity === 'breathing') {
-      setIsBreathingOpen(true);
-    } else if (initialActivity === 'grounding') {
-      setIsGroundingOpen(true);
-    } else if (initialActivity === 'winddown') {
-      setIsWindDownOpen(true);
-    } else if (initialActivity === 'journal') {
-      setCurrentSection('journal');
-    } else if (initialActivity === 'mood') {
-      setCurrentSection('mood');
-    }
+    Promise.resolve().then(() => {
+      if (initialActivity === 'breathing') {
+        setIsBreathingOpen(true);
+      } else if (initialActivity === 'grounding') {
+        setIsGroundingOpen(true);
+      } else if (initialActivity === 'winddown') {
+        setIsWindDownOpen(true);
+      } else if (initialActivity === 'journal') {
+        setCurrentSection('journal');
+      } else if (initialActivity === 'mood') {
+        setCurrentSection('mood');
+      }
+    });
   }, [initialActivity]);
 
   useEffect(() => {
-    if (initialTab) {
-      setCurrentSection(initialTab);
-    }
+    Promise.resolve().then(() => {
+      if (initialTab) {
+        setCurrentSection(initialTab);
+      }
+    });
   }, [initialTab]);
 
   return (

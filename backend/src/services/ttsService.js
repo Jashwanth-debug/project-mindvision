@@ -1,6 +1,6 @@
 /**
  * MindVision Clinical AI - Cloud Neural Text-To-Speech (TTS) Service
- * 
+ *
  * Commercial-grade abstracted speech synthesis engine providing:
  * - Multi-provider architecture (Azure Cognitive Services, OpenAI TTS, ElevenLabs)
  * - SSML support (rate, pitch, emotional speaking style e.g., 'chat' / 'empathy')
@@ -43,7 +43,7 @@ export class TTSService {
     if (process.env.AZURE_SPEECH_KEY) return 'azure';
     if (process.env.OPENAI_API_KEY) return 'openai';
     if (process.env.ELEVENLABS_API_KEY) return 'elevenlabs';
-    
+
     // Default configured preference
     return 'azure';
   }
@@ -131,7 +131,7 @@ export class TTSService {
           cached: true,
           source: 'disk-cache'
         };
-      } catch (e) {
+      } catch {
         // Fall through to synthesize
       }
     }

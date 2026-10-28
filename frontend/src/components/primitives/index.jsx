@@ -4,79 +4,10 @@ import {
   IconX,
   IconRefreshCw,
   IconChevronDown,
-  IconAlertCircle,
-  IconDownload,
-  IconPrinter
+  IconAlertCircle
 } from '../Icons';
 
-/**
- * useFocusTrap - Accessible focus trapping hook for Modals, Drawers & Dialogs
- * Traps Tab / Shift+Tab within the container and restores focus to previous active element on close.
- */
-export function useFocusTrap(isOpen, containerRef, onClose) {
-  const previousActiveElementRef = useRef(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    previousActiveElementRef.current = document.activeElement;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        if (onClose) onClose();
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const container = containerRef.current;
-      if (!container) return;
-
-      const focusableElements = container.querySelectorAll(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Initial focus on container or first focusable element
-    const timer = setTimeout(() => {
-      const container = containerRef.current;
-      if (!container) return;
-      const initialFocus = container.querySelector('[data-autofocus]') ||
-        container.querySelector('button:not([disabled]), [href], input:not([disabled])') ||
-        container;
-      if (initialFocus && typeof initialFocus.focus === 'function') {
-        initialFocus.focus();
-      }
-    }, 50);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      clearTimeout(timer);
-      if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
-        previousActiveElementRef.current.focus();
-      }
-    };
-  }, [isOpen, containerRef, onClose]);
-}
+import useFocusTrap from './useFocusTrap';
 
 /**
  * 1. InteractiveButton
@@ -158,7 +89,7 @@ export function IconButton({
   return (
     <button
       type={type}
-      className={`mv-icon-btn mv-btn-${variant} ${className}`}
+      className={`mv-icon-btn mv-btn-${variant} mv-btn-${size} ${className}`}
       aria-label={label}
       title={label}
       disabled={disabled || isLoading}
@@ -212,7 +143,7 @@ export function Toast({ message, onDismiss, type = 'info', isAssertive = false }
   if (!message) return null;
 
   return (
-    <div className="mv-toast-region" aria-live={isAssertive ? 'assertive' : 'polite'}>
+    <div className={`mv-toast-region mv-toast-${type}`} aria-live={isAssertive ? 'assertive' : 'polite'}>
       <div className="mv-toast" role="status">
         <span style={{ color: 'var(--accent-teal)', fontSize: '1.1rem' }}>✓</span>
         <span style={{ flex: 1 }}>{message}</span>
@@ -647,161 +578,5 @@ export function ConfirmDialog({
   );
 }
 
-/**
- * 14. ReportPreview
- * High-fidelity in-app report preview modal before downloading with print and download actions.
- */
-export function ReportPreview({
-  isOpen,
-  onClose,
-  record,
-  onDownload
-}) {
-  const modalRef = useRef(null);
-  useFocusTrap(isOpen, modalRef, onClose);
-
-  if (!isOpen || !record) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="mv-modal-backdrop" onClick={onClose} role="presentation">
-      <div
-        ref={modalRef}
-        className="mv-modal-dialog"
-        style={{ maxWidth: '640px', maxHeight: '85vh' }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Check-in Report Preview"
-        onClick={(e) => e.stopPropagation()}
-        tabIndex={-1}
-      >
-        {/* Preview Action Header */}
-        <div style={{
-          padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'var(--card-bg)'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-              Check-in Report Preview
-            </h2>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              {record.timestamp || 'Recent Session'}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <InteractiveButton
-              variant="secondary"
-              size="sm"
-              icon={<IconPrinter size={14} />}
-              onClick={handlePrint}
-            >
-              Print
-            </InteractiveButton>
-            {onDownload && (
-              <InteractiveButton
-                variant="primary"
-                size="sm"
-                icon={<IconDownload size={14} />}
-                onClick={() => onDownload(record)}
-              >
-                Download PDF
-              </InteractiveButton>
-            )}
-            <IconButton
-              icon={<IconX size={18} />}
-              label="Close report preview"
-              onClick={onClose}
-            />
-          </div>
-        </div>
-
-        {/* Structured Document Preview Sheet */}
-        <div style={{
-          padding: '2rem',
-          overflowY: 'auto',
-          background: 'var(--card-bg-subtle)'
-        }}>
-          <div style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            padding: '2rem',
-            boxShadow: 'var(--shadow-subtle)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
-                  MindVision Personal Wellness Summary
-                </h1>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Confidential &amp; Secure • Self-Reflection Companion
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius-pill)',
-                  backgroundColor: record.riskLevel === 'MINIMAL' ? 'var(--status-minimal-bg)' : 'var(--status-elevated-bg)',
-                  color: record.riskLevel === 'MINIMAL' ? 'var(--status-minimal-text)' : 'var(--status-elevated-text)',
-                  fontWeight: 700,
-                  fontSize: '0.78rem'
-                }}>
-                  {record.riskLevel === 'MINIMAL' ? 'Steady & Calm' : 'Support Recommended'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                Supportive Overview
-              </h4>
-              <p style={{ fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-                {record.explanation || record.summary || "Your self-reported answers and estimated signals reflect a steady, calm pattern."}
-              </p>
-            </div>
-
-            {record.text && (
-              <div style={{
-                marginBottom: '1.5rem',
-                padding: '1rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.88rem',
-                fontStyle: 'italic',
-                color: 'var(--text-primary)'
-              }}>
-                "{record.text.replace(/\(High somatic.*?\)/g, '')}"
-              </div>
-            )}
-
-            {record.cues && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                  Observed Wellness Cues
-                </h4>
-                <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  {record.cues.words && <li><strong>Self-reflection:</strong> {record.cues.words}</li>}
-                  {record.cues.speakingRhythm && <li><strong>Voice tone &amp; cadence:</strong> {record.cues.speakingRhythm}</li>}
-                  {record.cues.gentleExpressions && <li><strong>Facial expression cues:</strong> {record.cues.gentleExpressions}</li>}
-                </ul>
-              </div>
-            )}
-
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1.5rem', fontSize: '0.76rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-              MindVision is an empathetic wellness companion and does not provide clinical diagnoses. If you need urgent support, call or text 988.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import PdfReportPreviewModal from './PdfReportPreviewModal';
+export { PdfReportPreviewModal, PdfReportPreviewModal as ReportPreview };

@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   MoodTrackerService,
-  MOOD_DEFINITIONS,
-  getLocalDateString
+  MOOD_DEFINITIONS
 } from '../../services/wellnessStorageService';
 import {
   IconSmile,
   IconCalendar,
-  IconClock,
   IconTrash2,
   IconPlus,
   IconCheck,
-  IconSparkles,
   IconShieldCheck,
   IconChevronRight
 } from '../Icons';

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import SystemCameraAudioTester from './SystemCameraAudioTester';
 import MultimodalTimeline from './MultimodalTimeline';
 import ExplainabilityModal from './ExplainabilityModal';
 import {
@@ -13,16 +12,17 @@ import { evaluateSignalQuality } from '../utils/signalQualityEngine';
 import {
   getHumanStatus,
   getHumanObservations,
-  TERMINOLOGY_MAP,
-  CLINICAL_DISCLAIMER,
-  SIMULATION_NOTICE
+  CLINICAL_DISCLAIMER
 } from '../utils/terminology';
+
+const generateRecordId = () => 'mv_' + Date.now().toString(36);
+const generateRecordTimestamp = () => new Date().toLocaleString();
 
 export default function LiveTelemetrySandbox({
   onLaunchSensor,
   onSavePatientRecord,
   onShowToast,
-  onTriggerHighRiskEscalation,
+  _onTriggerHighRiskEscalation,
   externalValues,
   initialMode = 'basic'
 }) {
@@ -43,7 +43,7 @@ export default function LiveTelemetrySandbox({
   const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
 
   // Quality Report State from Hardware Engine
-  const [qualityReport, setQualityReport] = useState(() => evaluateSignalQuality({
+  const [qualityReport] = useState(() => evaluateSignalQuality({
     isHardwareActive: false,
     isCameraActive: false,
     isAudioActive: false,
@@ -54,16 +54,18 @@ export default function LiveTelemetrySandbox({
   }));
 
   // Multimodal Timeline points state
-  const [timelinePoints, setTimelinePoints] = useState(() => TelemetryTimelineService.getActiveTimeline(4.2, 88));
+  const [timelinePoints] = useState(() => TelemetryTimelineService.getActiveTimeline(4.2, 88));
 
   // Handle external sync from live sensor if received
   useEffect(() => {
     if (!externalValues) return;
     const { au4: extAu4, au15: extAu15, jitter: extJitter } = externalValues;
-    if (extAu4 !== undefined) setAu4(extAu4);
-    if (extAu15 !== undefined) setAu15(extAu15);
-    if (extJitter !== undefined) setAcousticJitter(extJitter);
-    setActivePreset('live');
+    Promise.resolve().then(() => {
+      if (extAu4 !== undefined) setAu4(extAu4);
+      if (extAu15 !== undefined) setAu15(extAu15);
+      if (extJitter !== undefined) setAcousticJitter(extJitter);
+      setActivePreset('live');
+    });
   }, [externalValues]);
 
   // Dynamic linguistic sentiment extraction
@@ -131,10 +133,10 @@ export default function LiveTelemetrySandbox({
 
   // Save current record to clinician portal
   const handleSaveToPortal = () => {
-    const recordId = 'mv_' + Date.now().toString(36);
+    const recordId = generateRecordId();
     const record = {
       id: recordId,
-      timestamp: new Date().toLocaleString(),
+      timestamp: generateRecordTimestamp(),
       au4: metrics.au4,
       au15: metrics.au15,
       prosody: metrics.acousticJitter,
@@ -259,7 +261,7 @@ export default function LiveTelemetrySandbox({
       {/* ============================================================== */}
       {sandboxMode === 'basic' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          
+
           {/* Left Column: Plain Language Controls */}
           <div className="clinical-card" style={{ padding: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>

@@ -1,6 +1,6 @@
 /**
  * MindVision Clinical AI - Multimodal Timeline & Longitudinal Session Service
- * 
+ *
  * Manages:
  * - Real-time continuous telemetry time-series buffer (AU04, AU15, Prosody, Incongruence, Risk, Signal Quality)
  * - Timeline scrubbing & event playback
@@ -9,7 +9,7 @@
  * - Data provenance preservation (LIVE vs SANDBOX)
  */
 
-const STORAGE_KEY_TIMELINE = 'mindvision_session_timeline_v1';
+const _STORAGE_KEY_TIMELINE = 'mindvision_session_timeline_v1';
 const STORAGE_KEY_LONGITUDINAL = 'mindvision_patient_longitudinal_v1';
 
 // Seed historical longitudinal sessions for patient MV-882109
@@ -278,25 +278,41 @@ export class TelemetryTimelineService {
     const prev = previousSession || this.getLongitudinalSessions().slice(-1)[0];
     if (!prev) return null;
 
+    const hasProvidedData = Boolean(
+      metrics &&
+      (metrics.compositeRisk !== undefined || metrics.compositeIndicator !== undefined)
+    );
+
     const prevIndicator = prev.compositeIndicator ?? 4.8;
     const currIndicator = metrics.compositeRisk ?? metrics.compositeIndicator ?? 6.3;
     const indicatorDelta = parseFloat((currIndicator - prevIndicator).toFixed(1));
 
     const prevQuality = prev.signalQuality ?? 79;
-    const currQuality = metrics.signalQuality ?? 86;
+    const currQuality = metrics.signalQuality ?? (hasProvidedData ? 86 : prevQuality);
     const qualityDelta = currQuality - prevQuality;
 
     const prevAu4 = prev.metrics?.au4 ?? 0.38;
-    const currAu4 = metrics.au4 ?? 0.55;
+    const currAu4 = metrics.au4 ?? (hasProvidedData ? 0.55 : prevAu4);
     const au4Delta = parseFloat((currAu4 - prevAu4).toFixed(2));
 
     const prevProsody = prev.metrics?.prosody ?? 0.31;
-    const currProsody = metrics.acousticJitter ?? metrics.prosody ?? 0.42;
+    const currProsody = metrics.acousticJitter ?? metrics.prosody ?? (hasProvidedData ? 0.42 : prevProsody);
     const prosodyDelta = parseFloat((currProsody - prevProsody).toFixed(2));
 
     const prevIncongruence = prev.metrics?.incongruence ?? 0.17;
-    const currIncongruence = metrics.incongruenceIndex ?? metrics.incongruence ?? 0.28;
+    const currIncongruence = metrics.incongruenceIndex ?? metrics.incongruence ?? (hasProvidedData ? 0.28 : prevIncongruence);
     const incongruenceDelta = parseFloat((currIncongruence - prevIncongruence).toFixed(2));
+
+    let summaryText = '';
+    if (!hasProvidedData) {
+      summaryText = `No active telemetry session metrics provided for comparison. Displaying baseline reference from ${prev.date} session.`;
+    } else if (indicatorDelta > 0) {
+      summaryText = `Prototype composite indicator increased by ${Math.abs(indicatorDelta)} compared to ${prev.date} session. Facial action unit AU04 and voice prosody metrics showed relative elevation.`;
+    } else if (indicatorDelta < 0) {
+      summaryText = `Prototype composite indicator decreased by ${Math.abs(indicatorDelta)} compared to ${prev.date} session. Telemetry metrics show relative attenuation.`;
+    } else {
+      summaryText = `Prototype composite indicator remained congruent with ${prev.date} session baseline.`;
+    }
 
     return {
       previous: {
@@ -310,13 +326,15 @@ export class TelemetryTimelineService {
         incongruence: prevIncongruence
       },
       current: {
-        sessionNumber: 'Current Session (Active)',
+        sessionNumber: hasProvidedData ? 'Current Session (Active)' : 'Default Reference Baseline',
         date: 'Today',
         indicator: currIndicator,
         signalQuality: currQuality,
         au4: currAu4,
         prosody: currProsody,
-        incongruence: currIncongruence
+        incongruence: currIncongruence,
+        isEstimated: !hasProvidedData,
+        hasActiveData: hasProvidedData
       },
       deltas: {
         indicator: indicatorDelta > 0 ? `+${indicatorDelta}` : `${indicatorDelta}`,
@@ -325,11 +343,8 @@ export class TelemetryTimelineService {
         prosody: prosodyDelta > 0 ? `+${prosodyDelta}` : `${prosodyDelta}`,
         incongruence: incongruenceDelta > 0 ? `+${incongruenceDelta}` : `${incongruenceDelta}`
       },
-      summaryText: indicatorDelta > 0
-        ? `Prototype composite indicator increased by ${Math.abs(indicatorDelta)} compared to ${prev.date} session. Facial action unit AU04 and voice prosody metrics showed relative elevation.`
-        : indicatorDelta < 0
-        ? `Prototype composite indicator decreased by ${Math.abs(indicatorDelta)} compared to ${prev.date} session. Telemetry metrics show relative attenuation.`
-        : `Prototype composite indicator remained congruent with ${prev.date} session baseline.`
+      summaryText,
+      hasActiveData: hasProvidedData
     };
   }
 }

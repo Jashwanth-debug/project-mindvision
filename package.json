@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "start": "npm run dev:all",
     "dev": "npm --prefix frontend run dev",
@@ -12,6 +13,35 @@
     "start:backend": "node backend/src/server.js",
     "dev:backend": "node --watch backend/src/server.js",
     "dev:all": "npm run start:backend & npm --prefix frontend run dev",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "desktop:build": "npm run build",
+    "desktop:start": "npm run desktop:build && electron .",
+    "desktop:package": "npm run desktop:build && electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "com.mindvision.clinical.ai",
+    "productName": "MindVision Clinical AI",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.healthcare-fitness",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "target": [
+        "dir"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
   }
 }

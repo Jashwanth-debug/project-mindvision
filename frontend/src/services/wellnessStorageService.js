@@ -1,13 +1,13 @@
 /**
  * MindVision Patient Wellness Hub - Local Storage & Audio Service
- * 
+ *
  * Provides confidential client-side persistence for patient-facing wellness tools:
  * - Guided Breathing Session Tracking & Gentle Audio Chime Synthesizer
  * - Daily Mood Tracker (independent of check-ins)
  * - Private Journaling (CRUD, local search, opt-in theme analysis)
  * - Self-Reported Habit Ratings (Sleep, Energy, Stress)
  * - Smart Reminders & Weekly Wellness Goals
- * 
+ *
  * PRIVACY GUARANTEE:
  * All wellness logs (journal entries, mood notes, habit ratings) are stored
  * strictly on the patient's local device (localStorage). They are never transmitted
@@ -58,6 +58,17 @@ function readStorage(key, fallback = []) {
 function writeStorage(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    if (typeof window !== 'undefined' && window.desktopAPI?.wellness) {
+      if (key === STORAGE_KEYS.MOODS && Array.isArray(value)) {
+        value.forEach((m) => window.desktopAPI.wellness.saveMood(m).catch(() => {}));
+      } else if (key === STORAGE_KEYS.JOURNALS && Array.isArray(value)) {
+        value.forEach((j) => window.desktopAPI.wellness.saveJournal(j).catch(() => {}));
+      } else if (key === STORAGE_KEYS.GOALS && Array.isArray(value)) {
+        value.forEach((g) => window.desktopAPI.wellness.saveGoal(g).catch(() => {}));
+      } else if (key === STORAGE_KEYS.REMINDERS && Array.isArray(value)) {
+        value.forEach((r) => window.desktopAPI.wellness.saveReminder(r).catch(() => {}));
+      }
+    }
     return true;
   } catch (err) {
     console.warn(`[WellnessStorage] Failed writing ${key}:`, err);

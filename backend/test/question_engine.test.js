@@ -3,7 +3,6 @@ import assert from 'node:assert';
 import {
   THEMATIC_QUESTION_BANK,
   getInitialQuestion,
-  selectVariantForTheme,
   determineNextQuestion,
   getConversationalAcknowledgement,
   getFriendlyProgress,
