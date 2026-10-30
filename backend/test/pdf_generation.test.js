@@ -86,6 +86,55 @@ describe('PDF Generation Pipeline & Integrity', () => {
     assert.strictEqual(headerStr, '%PDF-');
   });
 
+  it('generates a comprehensive multi-page PDF with telemetry scorecard, dialog history, and SOAP documentation', async () => {
+    const comprehensiveRecord = {
+      id: 'scr_comprehensive_789',
+      timestamp: '2026-10-28T09:15:00.000Z',
+      dateIso: '2026-10-28T09:15:00.000Z',
+      riskLevel: 'MODERATE',
+      compositeRisk: 4.85,
+      au4: 0.52,
+      au15: 0.44,
+      prosody: 0.48,
+      sentiment: 0.39,
+      incongruence: 0.28,
+      dialogHistory: [
+        {
+          prompt: 'How are you feeling overall as we begin today?',
+          answer: 'I feel somewhat drained after back-to-back working days, but trying to keep steady.',
+          theme: 'mood'
+        },
+        {
+          prompt: 'Have you noticed tension in your body, neck, or shoulders lately?',
+          answer: 'Yes, quite a bit of tightness in my upper back and around my temples.',
+          theme: 'stress'
+        },
+        {
+          prompt: 'What is one calming practice or thought that has helped you get through demanding days?',
+          answer: 'Taking an evening walk outside without looking at my screen.',
+          theme: 'coping'
+        }
+      ],
+      soapNote: {
+        subjective: 'Patient reports persistent occupational fatigue and temple tension over the past 48 hours.',
+        objective: 'Moderate Corrugator supercilii activation (AU04 = 0.52). Acoustic vocal jitter elevated at 0.48.',
+        assessment: 'Mild to moderate acute situational stress without signs of severe vegetative decompensation.',
+        plan: 'Prescribe diaphragmatic box breathing (4-4-4-4). Re-evaluate at next weekly check-in.'
+      }
+    };
+
+    const result = await generateCheckInPdf(comprehensiveRecord, { save: false });
+    assert.ok(result);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.filename, 'MindVision_CheckIn_2026-10-28.pdf');
+    assert.strictEqual(result.blob.type, 'application/pdf');
+    assert.ok(result.size > 5000, `Rich PDF should be substantially structured (>5KB), got ${result.size} bytes`);
+
+    const arrayBuffer = await result.blob.arrayBuffer();
+    const headerStr = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 5)));
+    assert.strictEqual(headerStr, '%PDF-');
+  });
+
   describe('generatePatientHistoryPdf', () => {
     const sampleRecords = [
       {

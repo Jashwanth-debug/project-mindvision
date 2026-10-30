@@ -22,6 +22,28 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   } catch {}
 }
 
+/**
+ * Resolves the backend API endpoint dynamically across:
+ * 1. Configured cloud backend (via VITE_API_BASE_URL)
+ * 2. Web browser reverse proxy or unified domain (/api/...)
+ * 3. Local desktop / standalone development (http://localhost:5001)
+ */
+function getApiEndpoint(endpointPath) {
+  const envBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL)
+    ? String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, '')
+    : '';
+
+  if (envBase) {
+    return `${envBase}${endpointPath}`;
+  }
+
+  if (typeof window !== 'undefined' && window.location?.protocol?.startsWith('http')) {
+    return endpointPath;
+  }
+
+  return `http://localhost:5001${endpointPath}`;
+}
+
 export class TTSService {
   // In-memory cache of object URLs: normalized text -> blobUrl
   static blobUrlCache = new Map();
@@ -280,10 +302,8 @@ export class TTSService {
     if (onLoading) onLoading(true);
 
     try {
-      // Direct proxy route works via Vite or directly on :5001
-      const apiUrl = (typeof window !== 'undefined' && window.location.port === '5173')
-        ? '/api/tts/synthesize'
-        : 'http://localhost:5001/api/tts/synthesize';
+      // Dynamic production-ready endpoint resolution
+      const apiUrl = getApiEndpoint('/api/tts/synthesize');
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -467,9 +487,7 @@ export class TTSService {
       if (this.blobUrlCache.has(cacheKey)) continue;
 
       try {
-        const apiUrl = (typeof window !== 'undefined' && window.location.port === '5173')
-          ? '/api/tts/synthesize'
-          : 'http://localhost:5001/api/tts/synthesize';
+        const apiUrl = getApiEndpoint('/api/tts/synthesize');
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -501,9 +519,7 @@ export class TTSService {
    */
   static async checkStatus() {
     try {
-      const apiUrl = (typeof window !== 'undefined' && window.location.port === '5173')
-        ? '/api/tts/status'
-        : 'http://localhost:5001/api/tts/status';
+      const apiUrl = getApiEndpoint('/api/tts/status');
 
       const response = await fetch(apiUrl);
       if (response.ok) {
