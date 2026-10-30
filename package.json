@@ -7,7 +7,7 @@
   "scripts": {
     "start": "npm run dev:all",
     "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build && node -e \"const fs=require('fs'); try{fs.cpSync('frontend/dist','dist',{recursive:true});}catch{}\"",
+    "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
     "lint": "npm --prefix frontend run lint",
     "start:backend": "node backend/src/server.js",
